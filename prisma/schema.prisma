@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
+  relationMode      = "prisma"
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String?  @unique
+  name       String
+  age        Int?
+  sex        String?
+  conditions String[] @default([])
+  goals      String[] @default([])
+  createdAt  DateTime @default(now())
+  reports    MedicalReport[]
+  scans      Scan[]
+  dailyLogs  DailyLog[]
+}
+
+model MedicalReport {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  fileUrl    String
+  parsedData Json
+  encrypted  Boolean  @default(true)
+}
+
+model Scan {
+  id           String   @id @default(uuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  productName  String
+  ingredients  String[]
+  nutrition    Json
+  score        Int
+  createdAt    DateTime @default(now())
+}
+
+model DailyLog {
+  id               String   @id @default(uuid())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+  date             DateTime
+  consumedItems    String[]
+  hormonalLoadScore Int
+}
+
+model ResearchDoc {
+  id        String   @id @default(uuid())
+  condition String
+  content   String
+  source    String?  // e.g., "pubmed" or "openfda"
+  embedding String?  // Store as JSON string; can migrate to pgvector(1536) when ready
+  createdAt DateTime @default(now())
+}
