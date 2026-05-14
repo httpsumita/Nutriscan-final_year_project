@@ -20,25 +20,44 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           return null
         }
 
-        // TODO: Replace with actual password hashing + verification
-        // For now, accept any email as a demo
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string }
-        }).catch(() => null)
+        // Demo mode: hardcoded credentials
+        const DEMO_EMAIL = "demo@nutriscan.com"
+        const DEMO_PASSWORD = "demo123"
 
-        if (user) {
-          return { id: user.id, email: user.email, name: user.name }
+        if (
+          credentials.email === DEMO_EMAIL &&
+          credentials.password === DEMO_PASSWORD
+        ) {
+          return {
+            id: "demo-user-1",
+            email: DEMO_EMAIL,
+            name: "Demo User"
+          }
         }
 
-        // Create user if doesn't exist (demo mode)
-        const newUser = await prisma.user.create({
-          data: {
-            email: credentials.email as string,
-            name: "User"
-          }
-        })
+        // If database is available, try to find/create user
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string }
+          }).catch(() => null)
 
-        return { id: newUser.id, email: newUser.email, name: newUser.name }
+          if (user) {
+            return { id: user.id, email: user.email, name: user.name }
+          }
+
+          // Create user if doesn't exist (demo mode)
+          const newUser = await prisma.user.create({
+            data: {
+              email: credentials.email as string,
+              name: "User"
+            }
+          })
+
+          return { id: newUser.id, email: newUser.email, name: newUser.name }
+        } catch (error) {
+          // Database unavailable, use demo fallback
+          return null
+        }
       }
     })
   ],

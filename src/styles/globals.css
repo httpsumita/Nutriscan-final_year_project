@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,5 +11,23 @@ html, body, #__next {
 }
 
 body {
-  @apply bg-white text-slate-800;
+  @apply bg-neutral-0 text-neutral-600 font-sans;
+  font-family: 'Inter', 'DM Sans', sans-serif;
+  font-weight: 400;
+}
+
+/* Typography base styles */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-medium;
+  font-weight: 500;
+}
+
+p, span, a, button {
+  @apply font-medium;
+  font-weight: 400;
+}
+
+/* Custom utility for left-bordered insights cards */
+.insight-card {
+  @apply border-l-4 border-sage-400 bg-sage-50 bg-opacity-30;
 }

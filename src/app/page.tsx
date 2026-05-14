@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { Heart, Zap, TrendingUp, Lock, Leaf, Clock } from 'lucide-react'
 
 export default function LandingPage() {
   const { data: session, status } = useSession()
@@ -16,151 +17,140 @@ export default function LandingPage() {
   }, [status, session, router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white overflow-hidden">
-      {/* Animated background blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-6">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center font-bold text-lg">N</div>
-          <span className="text-xl font-bold">NutriScan</span>
-        </div>
-        <div className="flex gap-4">
+    <div className="min-h-screen bg-neutral-0">
+      {/* Sticky Navigation */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-neutral-200 px-6 md:px-12 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sage-400 rounded-lg flex items-center justify-center font-bold text-white">N</div>
+            <span className="text-xl font-medium text-neutral-600">NutriScan</span>
+          </div>
+          <div className="hidden md:flex gap-8 absolute left-1/2 transform -translate-x-1/2">
+            <a href="#features" className="text-neutral-600 hover:text-sage-700 transition text-sm font-medium">Features</a>
+            <a href="#how" className="text-neutral-600 hover:text-sage-700 transition text-sm font-medium">How it Works</a>
+            <a href="#" className="text-neutral-600 hover:text-sage-700 transition text-sm font-medium">About</a>
+          </div>
           <Link
             href="/auth/signin"
-            className="px-6 py-2 text-sm font-medium border border-blue-400 rounded-lg hover:bg-blue-500/10 transition"
+            className="px-6 py-2 bg-sage-400 text-white rounded-lg text-sm font-medium hover:bg-sage-700 transition"
           >
-            Sign In
+            Get Started
           </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-20 md:py-32">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              Your <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">AI-Powered</span> Nutrition Guide
-            </h1>
-            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-              Stop generic calorie counting. Get personalized nutrition analysis based on your hormonal health, medical conditions, and goals.
-            </p>
-            <div className="flex gap-4 flex-col sm:flex-row">
-              <Link
-                href="/auth/signin"
-                className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition transform hover:scale-105 text-center"
-              >
-                Get Started Free
-              </Link>
-              <button className="px-8 py-4 border border-slate-400 rounded-lg font-semibold hover:bg-slate-800/50 transition">
-                Watch Demo
-              </button>
-            </div>
-          </div>
-
-          {/* Right Visual */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-2xl"></div>
-            <div className="relative bg-slate-800/40 border border-slate-700/50 rounded-3xl p-8 backdrop-blur-sm">
-              <div className="bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center text-2xl">📷</div>
-                  <div>
-                    <p className="font-semibold text-sm">Snap & Scan</p>
-                    <p className="text-xs text-slate-400">Capture any food product</p>
-                  </div>
-                </div>
-                <div className="h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center text-2xl">🧠</div>
-                  <div>
-                    <p className="font-semibold text-sm">AI Analysis</p>
-                    <p className="text-xs text-slate-400">Ingredient & nutrition extract</p>
-                  </div>
-                </div>
-                <div className="h-px bg-gradient-to-r from-purple-500/50 to-transparent"></div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center text-2xl">💯</div>
-                  <div>
-                    <p className="font-semibold text-sm">Smart Score</p>
-                    <p className="text-xs text-slate-400">Your personalized compatibility</p>
-                  </div>
-                </div>
+      <section className="bg-sage-200 py-24 md:py-32">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-5xl md:text-6xl font-medium leading-tight text-neutral-600 mb-6">
+                Nutrition that honors your hormonal health
+              </h1>
+              <p className="text-lg text-neutral-600 mb-8 leading-relaxed opacity-90">
+                Scan any food product. Get AI-powered compatibility scores based on your specific health conditions, not generic calorie counts.
+              </p>
+              <div className="flex gap-4 flex-col sm:flex-row">
+                <Link
+                  href="/auth/signin"
+                  className="px-8 py-3 bg-sage-700 text-white rounded-lg font-medium hover:bg-sage-800 transition text-center"
+                >
+                  Start Free
+                </Link>
+                <button className="px-8 py-3 bg-white text-sage-700 border border-sage-400 rounded-lg font-medium hover:bg-sage-50 transition">
+                  Learn More
+                </button>
               </div>
+            </div>
+            
+            {/* Minimal SVG Cycle Ring */}
+            <div className="flex items-center justify-center">
+              <svg width="280" height="280" viewBox="0 0 280 280" className="drop-shadow-lg">
+                {/* Outer circle background */}
+                <circle cx="140" cy="140" r="130" fill="none" stroke="#D4EBE5" strokeWidth="2" opacity="0.3" />
+                
+                {/* Phase segments */}
+                <circle cx="140" cy="140" r="100" fill="none" stroke="#4A7C6F" strokeWidth="8" strokeDasharray="94.2 376.8" strokeLinecap="round" />
+                <circle cx="140" cy="140" r="100" fill="none" stroke="#7BAE9F" strokeWidth="8" strokeDasharray="94.2 376.8" strokeLinecap="round" strokeDashoffset="-94.2" opacity="0.6" />
+                <circle cx="140" cy="140" r="100" fill="none" stroke="#D4EBE5" strokeWidth="8" strokeDasharray="94.2 376.8" strokeLinecap="round" strokeDashoffset="-188.4" opacity="0.4" />
+                
+                {/* Center */}
+                <circle cx="140" cy="140" r="40" fill="#D4EBE5" />
+                <text x="140" y="145" textAnchor="middle" className="text-sm font-medium fill-sage-700">Day 12</text>
+              </svg>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Features Section */}
-      <div className="relative z-10 bg-slate-800/40 border-t border-slate-700/50 py-20">
-        <div className="max-w-6xl mx-auto px-6 md:px-12">
-          <h2 className="text-4xl font-bold text-center mb-16">Why NutriScan?</h2>
+      <section id="features" className="bg-white py-24">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <h2 className="text-4xl font-medium text-neutral-600 text-center mb-16">Why NutriScan?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: '🎯', title: 'Hormonal Health First', desc: 'Analysis tailored for PCOS, thyroid, insulin resistance, menopause, and more' },
-              { icon: '🔬', title: 'Research-Backed', desc: 'Every recommendation backed by PubMed studies and latest nutritional science' },
-              { icon: '⚡', title: 'Instant Insights', desc: 'AI-powered scoring shows exact compatibility with your health profile in seconds' },
-              { icon: '📊', title: 'Track Progress', desc: 'Daily hormonal load score, weekly patterns, and personalized improvement tips' },
-              { icon: '🔒', title: 'Privacy First', desc: 'Your health data stays encrypted. Medical reports never shared without consent' },
-              { icon: '⏱️', title: 'Save Time', desc: 'No more reading labels. Scan, get score, log consumption in 10 seconds' }
-            ].map((feature, i) => (
-              <div key={i} className="bg-slate-700/30 border border-slate-600/50 rounded-2xl p-8 backdrop-blur-sm hover:border-blue-500/50 transition">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{feature.desc}</p>
+              { icon: Heart, title: 'Hormonal Health First', desc: 'Analysis built for PCOS, thyroid, insulin resistance, menopause, and diabetes' },
+              { icon: TrendingUp, title: 'Research-Backed Insights', desc: 'Every score powered by latest nutritional science and medical research' },
+              { icon: Zap, title: 'Instant Compatibility Scores', desc: 'AI analyzes ingredients in seconds, showing exact fit for your profile' },
+              { icon: Clock, title: 'Save Time & Energy', desc: 'No more label reading. Scan, score, and log — done in 10 seconds' },
+              { icon: Leaf, title: 'Natural & Clean', desc: 'Beautiful, calm interface designed to reduce decision fatigue' },
+              { icon: Lock, title: 'Privacy Protected', desc: 'Your medical data stays encrypted and never leaves your control' }
+            ].map((item, i) => {
+              const IconComponent = item.icon
+              return (
+                <div key={i} className="bg-white border border-neutral-200 rounded-lg p-8 hover:border-sage-300 transition">
+                  <IconComponent className="w-8 h-8 text-sage-700 mb-4" strokeWidth={1.5} />
+                  <h3 className="text-lg font-medium text-neutral-600 mb-3">{item.title}</h3>
+                  <p className="text-neutral-600 text-sm leading-relaxed opacity-80">{item.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how" className="bg-neutral-0 py-24">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <h2 className="text-4xl font-medium text-neutral-600 text-center mb-16">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              { step: '01', title: 'Profile', desc: 'Share your health conditions and goals' },
+              { step: '02', title: 'Scan', desc: 'Point your camera at any food product' },
+              { step: '03', title: 'Analyze', desc: 'AI extracts ingredients and nutrition facts' },
+              { step: '04', title: 'Score', desc: 'Get your personalized compatibility score' }
+            ].map((item, i) => (
+              <div key={i} className="relative">
+                <div className="bg-neutral-100 border border-neutral-200 rounded-lg p-8 text-center">
+                  <div className="text-3xl font-medium text-sage-700 mb-3">{item.step}</div>
+                  <h3 className="text-lg font-medium text-neutral-600 mb-2">{item.title}</h3>
+                  <p className="text-neutral-600 text-sm opacity-75">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
-      </div>
-
-      {/* How It Works */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 py-20">
-        <h2 className="text-4xl font-bold text-center mb-16">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[
-            { num: '1', title: 'Profile', desc: 'Tell us your health conditions and goals' },
-            { num: '2', title: 'Scan', desc: 'Point camera at any food product label' },
-            { num: '3', title: 'Analyze', desc: 'AI extracts ingredients and nutrition data' },
-            { num: '4', title: 'Score', desc: 'Get personalized 0–100 compatibility score' }
-          ].map((step, i) => (
-            <div key={i} className="relative">
-              <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-2xl p-8 text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  {step.num}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                <p className="text-slate-400 text-sm">{step.desc}</p>
-              </div>
-              {i < 3 && (
-                <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-gradient-to-r from-blue-500 to-transparent"></div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {/* CTA Section */}
-      <div className="relative z-10 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-3xl max-w-3xl mx-auto px-8 py-16 text-center mb-20">
-        <h2 className="text-4xl font-bold mb-4">Ready to transform your nutrition?</h2>
-        <p className="text-xl text-slate-300 mb-8">Join thousands who are making smarter food choices based on their hormonal health.</p>
-        <Link
-          href="/auth/signin"
-          className="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition transform hover:scale-105"
-        >
-          Start Your Journey
-        </Link>
-      </div>
+      <section className="bg-sage-200 py-20">
+        <div className="max-w-3xl mx-auto px-6 md:px-12 text-center">
+          <h2 className="text-4xl font-medium text-neutral-600 mb-4">Ready to make smarter choices?</h2>
+          <p className="text-neutral-600 text-lg mb-8 opacity-90">Join thousands who are transforming their nutrition based on their hormonal health.</p>
+          <Link
+            href="/auth/signin"
+            className="inline-block px-8 py-4 bg-sage-700 text-white rounded-lg font-medium hover:bg-sage-800 transition"
+          >
+            Get Started Free
+          </Link>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-700/50 py-8 text-center text-slate-400 text-sm">
-        <p>NutriScan © 2026 | Personalized Nutrition Intelligence</p>
+      <footer className="bg-neutral-600 text-white py-8">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 text-center text-sm opacity-80">
+          <p>NutriScan © 2026 | Personalized Nutrition Intelligence for Hormonal Health</p>
+        </div>
       </footer>
     </div>
   )
