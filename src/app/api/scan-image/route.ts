@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
-import { analyzeProductImage } from '@/lib/gemini'
+import { extractProductTextFromImage } from '@/lib/vision'
 import { prisma } from '@/lib/prisma'
 import { computeScore } from '@/lib/scoring'
+import { scoreProductForUserHealth, calculateDailyHormonalLoad } from '@/lib/scoring-enhanced'
+import { buildRagContext } from '@/lib/rag-search'
 import { auth } from '@/auth'
 
 export async function POST(req: Request) {
@@ -24,40 +26,98 @@ export async function POST(req: Request) {
       )
     }
 
-    // Analyze image with Gemini
-    const extraction = await analyzeProductImage(imageData)
+    // Extract text from image using Google Vision OCR (free tier - 1000 requests/month)
+    const extraction = await extractProductTextFromImage(imageData)
 
-    // Fetch user profile for scoring
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
+    // Fetch user profile for scoring - with database fallback
+    let userConditions: string[] = []
+    let userGoals: string[] = []
+    let scanId: string | null = null
+    let hormonalLoad = 50 // default
 
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, error: 'User not found' },
-        { status: 404 }
-      )
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id }
+      })
+
+      if (user) {
+        userConditions = user.conditions || []
+        userGoals = user.goals || []
+      }
+    } catch (dbError) {
+      // Database not available - use defaults
+      console.warn('Database unavailable, using default user profile:', dbError)
     }
 
-    // Compute score
-    const score = computeScore(
-      100,
+    // Build RAG context (search Food.json and web for ingredient info)
+    const ragContext = await buildRagContext(extraction.ingredients || [])
+
+    // Score product using enhanced scoring with RAG context (1-10 scale)
+    const productScore = scoreProductForUserHealth(
+      extraction.productName || 'Unknown',
       extraction.ingredients || [],
-      { conditions: user.conditions, goals: user.goals },
-      0,
-      extraction.nutrition || {}
+      { conditions: userConditions, goals: userGoals },
+      ragContext
     )
 
-    // Store scan
-    const scan = await prisma.scan.create({
-      data: {
-        userId: session.user.id,
-        productName: extraction.productName || 'Unknown',
-        ingredients: extraction.ingredients || [],
-        nutrition: extraction.nutrition || {},
-        score: score
+    // Convert 1-10 score to 0-100 for backward compatibility
+    const score100 = Math.round((productScore.overallScore / 10) * 100)
+
+    // Try to store scan and daily log in database
+    try {
+      // Store scan
+      const scan = await prisma.scan.create({
+        data: {
+          userId: session.user.id,
+          productName: extraction.productName || 'Unknown',
+          ingredients: extraction.ingredients || [],
+          nutrition: extraction.nutrition || {},
+          score: score100
+        }
+      })
+      scanId = scan.id
+
+      // Get today's date for daily log
+      const today = new Date()
+      const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+      // Find or create daily log
+      let dailyLog = await prisma.dailyLog.findFirst({
+        where: { userId: session.user.id, date: dayStart }
+      })
+
+      if (!dailyLog) {
+        dailyLog = await prisma.dailyLog.create({
+          data: {
+            userId: session.user.id,
+            date: dayStart,
+            consumedItems: [],
+            hormonalLoadScore: 50
+          }
+        })
       }
-    })
+
+      // Add product to daily intake (format: "productName|score")
+      const consumedItems = [...(dailyLog.consumedItems || []), `${extraction.productName}|${productScore.overallScore}`]
+
+      // Calculate daily hormonal load
+      hormonalLoad = calculateDailyHormonalLoad(consumedItems, {
+        conditions: userConditions,
+        goals: userGoals
+      })
+
+      // Update daily log with new intake
+      await prisma.dailyLog.update({
+        where: { id: dailyLog.id },
+        data: {
+          consumedItems,
+          hormonalLoadScore: hormonalLoad
+        }
+      })
+    } catch (dbError) {
+      // Database storage failed - still return analysis results
+      console.warn('Database storage failed, returning analysis only:', dbError)
+    }
 
     return NextResponse.json({
       ok: true,
@@ -66,8 +126,19 @@ export async function POST(req: Request) {
         ingredients: extraction.ingredients,
         nutrition: extraction.nutrition,
         allergens: extraction.allergens,
-        score: score,
-        scanId: scan.id
+        score: productScore.overallScore,
+        scoreRange: '1-10',
+        healthRecommendation: productScore.healthRecommendation,
+        shouldConsume: productScore.shouldConsume,
+        riskFactors: productScore.riskFactors,
+        benefitFactors: productScore.benefitFactors,
+        dailyHormonalLoad: hormonalLoad,
+        scanId: scanId,
+        databaseAvailable: scanId !== null,
+        ragContext: {
+          foodDbMatches: ragContext.foodDbMatches.map(f => ({ name: f.name, group: f.food_group })),
+          nutritionInfo: ragContext.combinedNutritionInfo
+        }
       }
     })
   } catch (error) {

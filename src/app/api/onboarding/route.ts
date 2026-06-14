@@ -13,8 +13,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { name, age, sex, conditions, goals } = body
+    const { name, age, sex, conditions, goals, medicalReportIds } = body
 
+    // Validate required fields
+    if (!name) {
+      return NextResponse.json(
+        { ok: false, error: 'Name is required' },
+        { status: 400 }
+      )
+    }
+
+    // Update user profile
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: {
@@ -25,6 +34,11 @@ export async function POST(req: Request) {
         goals: goals || []
       }
     })
+
+    // If medical reports were uploaded, you can process them here if needed
+    if (medicalReportIds && medicalReportIds.length > 0) {
+      console.log(`User has uploaded ${medicalReportIds.length} medical reports`)
+    }
 
     return NextResponse.json({ ok: true, user })
   } catch (error) {

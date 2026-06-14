@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
+    "@google-cloud/vision": "^5.3.7",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.12.0",
     "autoprefixer": "^10.4.14",
     "clsx": "^1.2.1",
+    "duckduckgo-search": "^1.0.7",
     "lucide-react": "^1.16.0",
     "next": "^15.0.0",
     "next-auth": "^5.0.0-beta.30",
