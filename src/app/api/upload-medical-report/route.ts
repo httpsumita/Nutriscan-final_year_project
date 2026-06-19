@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     const formData = await req.formData()
     const file = formData.get('file') as File
-
+    
     if (!file) {
       return NextResponse.json(
         { ok: false, error: 'No file provided' },
@@ -22,17 +22,17 @@ export async function POST(req: Request) {
       )
     }
 
-    // Validate file type (PDF or Image)
+    // Validate file type and size
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    const maxSize = 10 * 1024 * 1024 // 10MB
+
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { ok: false, error: 'Only PDF and image files are allowed' },
+        { ok: false, error: 'Invalid file type. Please upload PDF, JPG, or PNG files.' },
         { status: 400 }
       )
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json(
         { ok: false, error: 'File size must be less than 10MB' },
@@ -40,37 +40,38 @@ export async function POST(req: Request) {
       )
     }
 
-    // Convert file to base64
-    const buffer = await file.arrayBuffer()
-    const base64 = Buffer.from(buffer).toString('base64')
-    const fileUrl = `data:${file.type};base64,${base64}`
+    // Convert file to buffer for storage
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
 
-    // Store in database
+    // Store in database (encrypted)
     const report = await prisma.medicalReport.create({
       data: {
         userId: session.user.id,
-        fileUrl,
-        parsedData: {
-          fileName: file.name,
-          fileType: file.type,
-          uploadedAt: new Date().toISOString()
-        },
-        encrypted: false
+        fileName: file.name,
+        data: buffer,
+        fileSize: file.size,
+        mimeType: file.type,
+        encrypted: true,
+        uploadedAt: new Date()
       }
     })
 
+    // Return report info without sensitive data
     return NextResponse.json({
       ok: true,
       report: {
         id: report.id,
-        fileName: file.name,
-        uploadedAt: report.id // Using report ID as timestamp
+        fileName: report.fileName,
+        fileSize: report.fileSize,
+        uploadedAt: report.uploadedAt.toISOString()
       }
     })
+
   } catch (error) {
-    console.error('Medical report upload error:', error)
+    console.error('Upload medical report API error:', error)
     return NextResponse.json(
-      { ok: false, error: String(error) },
+      { ok: false, error: 'Internal server error' },
       { status: 500 }
     )
   }

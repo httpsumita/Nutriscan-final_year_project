@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Send, ArrowLeft } from 'lucide-react'
+import { Send, ArrowLeft, Camera, Sparkles, Zap, CheckCircle, HelpCircle, Keyboard } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -13,11 +13,13 @@ interface ChatMessage {
 export default function ScanPage() {
   const { data: session } = useSession()
   const [scanning, setScanning] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [showChatHelp, setShowChatHelp] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -49,6 +51,8 @@ export default function ScanPage() {
     const context = canvasRef.current.getContext('2d')
     if (!context) return
 
+    setAnalyzing(true)
+    
     context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height)
     const imageData = canvasRef.current.toDataURL('image/jpeg')
 
@@ -68,29 +72,42 @@ export default function ScanPage() {
 
       const data = await response.json()
       if (data.ok) {
-        setResult(data.product)
-        // Initialize chat with product analysis
-        const initialMessage = `I found a product: **${data.product.productName}**
+        // Simulate processing delay for better UX
+        setTimeout(() => {
+          setResult(data.product)
+          setAnalyzing(false)
+          
+          // Initialize chat with enhanced product analysis
+          const initialMessage = `🎉 **Analysis Complete!**
 
-📊 **Compatibility Score: ${data.product.score}/10**
+**${data.product.productName}**
 
-${data.product.shouldConsume ? '✅ Recommended' : '⚠️ Use with caution'} for your health profile.
+🏆 **Compatibility Score: ${data.product.score}/10**
 
-**Key Info:**
-- ${data.product.healthRecommendation}
-${data.product.benefitFactors.length > 0 ? `\n**Benefits:** ${data.product.benefitFactors.slice(0, 2).join(', ')}` : ''}
-${data.product.riskFactors.length > 0 ? `\n**Considerations:** ${data.product.riskFactors.slice(0, 2).join(', ')}` : ''}
+${data.product.score >= 8 ? '✅ **Excellent Choice!**' : 
+  data.product.score >= 6 ? '🟡 **Good Option**' : 
+  data.product.score >= 4 ? '🟠 **Use with Caution**' : 
+  '🔴 **Not Recommended**'} for your health profile.
 
-What would you like to know about this product?`
+**Health Insights:**
+${data.product.healthRecommendation}
 
-        setChatMessages([
-          { role: 'assistant', content: initialMessage }
-        ])
+${data.product.benefitFactors.length > 0 ? `**✅ Benefits:**\n${data.product.benefitFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
+${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.riskFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
+
+💬 Feel free to ask me anything about this product!`
+
+          setChatMessages([
+            { role: 'assistant', content: initialMessage }
+          ])
+        }, 2500)
       } else {
         setError(data.error || 'Failed to analyze image')
+        setAnalyzing(false)
       }
     } catch (err) {
       setError('Error analyzing image: ' + String(err))
+      setAnalyzing(false)
     }
   }
 
@@ -133,94 +150,307 @@ What would you like to know about this product?`
   return (
     <div className="min-h-screen bg-gradient-to-br from-sage-50 to-neutral-0">
       <div className="max-w-2xl mx-auto py-6 px-6 h-screen flex flex-col">
-        {/* Header */}
+        {/* Enhanced Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-neutral-600">Scan Product</h2>
-          <Link href="/dashboard" className="flex items-center gap-1 text-sage-600 hover:text-sage-700 transition">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Dashboard</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-all hover:shadow-md">
+              <ArrowLeft className="w-4 h-4 text-neutral-600" />
+              <span className="text-sm font-medium text-neutral-600">Dashboard</span>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-semibold text-neutral-700 flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-sage-400 to-sage-600 rounded-lg flex items-center justify-center">
+                  <Camera className="w-4 h-4 text-white" strokeWidth={2} />
+                </div>
+                Product Scanner
+              </h1>
+            </div>
+          </div>
         </div>
 
         {/* Camera View - Initial State */}
-        {!scanning && !result && (
+        {!scanning && !analyzing && !result && (
           <div className="flex-1 flex flex-col justify-center">
-            <div className="bg-gradient-to-br from-sage-100 to-sage-50 border border-sage-200 rounded-lg p-12 text-center">
-              <div className="text-6xl mb-6">📷</div>
-              <p className="text-neutral-600 mb-8 text-lg leading-relaxed">
-                Point your camera at a food product to analyze its nutritional compatibility with your health profile.
-              </p>
-              <button
-                onClick={startCamera}
-                className="px-8 py-4 bg-sage-700 text-white font-medium rounded-lg hover:bg-sage-800 transition inline-block"
-              >
-                Open Camera
-              </button>
+            <div className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden">
+              {/* Hero Section */}
+              <div className="bg-gradient-to-br from-sage-400 to-sage-600 px-8 py-12 text-white text-center">
+                <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Camera className="w-10 h-10" strokeWidth={2} />
+                </div>
+                <h2 className="text-2xl font-semibold mb-3">Ready to Scan</h2>
+                <p className="text-sage-100 text-lg max-w-md mx-auto">
+                  Point your camera at any food product to get personalized health compatibility scores
+                </p>
+              </div>
+              
+              {/* Features List */}
+              <div className="px-8 py-8">
+                <div className="grid grid-cols-1 gap-4 mb-8">
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-blue-600" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-neutral-700">Instant AI Analysis</h3>
+                      <p className="text-xs text-neutral-500">Ingredients analyzed in seconds</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-purple-600" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-neutral-700">Personalized Scoring</h3>
+                      <p className="text-xs text-neutral-500">Based on your health conditions</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-green-600" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-neutral-700">Smart Chat Interface</h3>
+                      <p className="text-xs text-neutral-500">Ask questions about your results</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Start Button */}
+                <div className="text-center">
+                  <button
+                    onClick={startCamera}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sage-600 to-sage-700 text-white font-medium rounded-xl hover:from-sage-700 hover:to-sage-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  >
+                    <Camera className="w-5 h-5" strokeWidth={2} />
+                    Start Scanning
+                  </button>
+                  <p className="text-sm text-neutral-500 mt-3">
+                    📱 Make sure your product label is clearly visible
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Camera Capture - Recording State */}
         {scanning && (
-          <div className="flex-1 flex flex-col gap-4">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full rounded-lg bg-black flex-1 object-cover"
-            />
-            <canvas
-              ref={canvasRef}
-              width={640}
-              height={480}
-              className="hidden"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={captureImage}
-                className="flex-1 px-4 py-3 bg-sage-600 text-white rounded-lg hover:bg-sage-700 font-medium transition"
-              >
-                Capture
-              </button>
-              <button
-                onClick={() => {
-                  const stream = videoRef.current?.srcObject as MediaStream
-                  stream?.getTracks().forEach(track => track.stop())
-                  setScanning(false)
-                }}
-                className="flex-1 px-4 py-3 bg-neutral-200 text-neutral-600 rounded-lg hover:bg-neutral-300 font-medium transition"
-              >
-                Cancel
-              </button>
+          <div className="flex-1 flex flex-col">
+            <div className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden flex-1 flex flex-col">
+              <div className="p-4 border-b border-neutral-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-neutral-700">Camera Active</span>
+                </div>
+                <p className="text-xs text-neutral-500 mt-1">Position your product in the center</p>
+              </div>
+              
+              {/* Camera Frame with Overlay */}
+              <div className="relative flex-1 min-h-0">
+                {/* Scan overlay */}
+                <div className="absolute inset-0 z-10 pointer-events-none">
+                  <div className="absolute inset-4 border-2 border-white border-opacity-50 rounded-lg">
+                    {/* Corner guides */}
+                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-sage-400"></div>
+                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-sage-400"></div>
+                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-sage-400"></div>
+                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-sage-400"></div>
+                  </div>
+                  
+                  {/* Scanning line animation */}
+                  <div className="absolute top-4 left-4 right-4 h-1 bg-gradient-to-r from-transparent via-sage-400 to-transparent animate-pulse"></div>
+                </div>
+                
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover bg-black"
+                />
+              </div>
+              
+              <canvas
+                ref={canvasRef}
+                width={640}
+                height={480}
+                className="hidden"
+              />
+              
+              {/* Control Buttons */}
+              <div className="p-4 flex gap-3">
+                <button
+                  onClick={captureImage}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-md"
+                >
+                  <Camera className="w-5 h-5" strokeWidth={2} />
+                  Capture & Analyze
+                </button>
+                <button
+                  onClick={() => {
+                    const stream = videoRef.current?.srcObject as MediaStream
+                    stream?.getTracks().forEach(track => track.stop())
+                    setScanning(false)
+                  }}
+                  className="px-6 py-3 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-all font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Chat Interface - Result Display */}
+        {/* Analyzing State */}
+        {analyzing && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-12 text-center max-w-md">
+              <div className="w-24 h-24 bg-gradient-to-br from-sage-400 to-sage-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <Sparkles className="w-12 h-12 text-white animate-spin" strokeWidth={2} />
+              </div>
+              <h2 className="text-2xl font-semibold text-neutral-700 mb-3">Analyzing Product</h2>
+              <p className="text-neutral-600 mb-6">
+                Our AI is examining ingredients, nutrition facts, and calculating your personalized compatibility score...
+              </p>
+              
+              {/* Progress Steps */}
+              <div className="flex justify-between items-center mb-4">
+                {['Scanning', 'Processing', 'Scoring'].map((step, i) => (
+                  <div key={step} className="flex flex-col items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                      i <= 1 ? 'bg-sage-500 text-white' : 'bg-neutral-200 text-neutral-500'
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <span className="text-xs text-neutral-500">{step}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="w-full bg-neutral-200 rounded-full h-2">
+                <div className="bg-gradient-to-r from-sage-400 to-sage-500 h-2 rounded-full animate-pulse" style={{ width: '66%' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Chat Interface - Result Display */}
         {result && (
-          <div className="flex-1 flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden">
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 flex flex-col bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-lg">
+            {/* Chat Header with Product Summary */}
+            <div className="bg-gradient-to-r from-sage-600 to-sage-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-5 h-5" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{result.productName}</h3>
+                    <p className="text-sm text-sage-100">Ask me anything about this product!</p>
+                  </div>
+                </div>
+                {/* Score Badge */}
+                <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                  <span className="text-sm font-bold">{result.score}/10</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Quick Info Bar */}
+            <div className="bg-gradient-to-r from-neutral-50 to-sage-50 px-6 py-3 border-b border-neutral-200">
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    result.score >= 8 ? 'bg-green-400' :
+                    result.score >= 6 ? 'bg-yellow-400' :
+                    result.score >= 4 ? 'bg-orange-400' : 'bg-red-400'
+                  }`}></div>
+                  <span className="font-medium text-neutral-600">
+                    {result.score >= 8 ? 'Excellent Choice' :
+                     result.score >= 6 ? 'Good Option' :
+                     result.score >= 4 ? 'Use Caution' : 'Not Recommended'}
+                  </span>
+                </div>
+                {result.ingredients && (
+                  <div className="text-neutral-500">
+                    {result.ingredients.length} ingredients analyzed
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chat Messages with Enhanced Styling */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-neutral-50 to-white">
               {chatMessages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-sage-600 text-white rounded-br-none'
-                        : 'bg-neutral-100 text-neutral-600 rounded-bl-none'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <div className={`max-w-xs lg:max-w-md ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
+                    {/* Avatar with Animation */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 shadow-md ${
+                      msg.role === 'user' 
+                        ? 'bg-gradient-to-br from-sage-600 to-sage-700 text-white ml-auto' 
+                        : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white animate-pulse'
+                    }`}>
+                      {msg.role === 'user' 
+                        ? session?.user?.name?.charAt(0).toUpperCase() || 'U'
+                        : '🤖'
+                      }
+                    </div>
+                    
+                    {/* Enhanced Message Bubble */}
+                    <div className="relative">
+                      {/* Speech bubble tail */}
+                      <div className={`absolute top-3 ${
+                        msg.role === 'user' 
+                          ? 'right-0 translate-x-2' 
+                          : 'left-0 -translate-x-2'
+                      }`}>
+                        <div className={`w-0 h-0 ${
+                          msg.role === 'user'
+                            ? 'border-l-8 border-l-sage-600 border-t-8 border-b-8 border-t-transparent border-b-transparent'
+                            : 'border-r-8 border-r-white border-t-8 border-b-8 border-t-transparent border-b-transparent'
+                        }`}></div>
+                      </div>
+                      
+                      {/* Message Content */}
+                      <div
+                        className={`px-6 py-4 rounded-2xl shadow-sm border ${
+                          msg.role === 'user'
+                            ? 'bg-gradient-to-br from-sage-600 to-sage-700 text-white border-sage-700'
+                            : 'bg-white border-neutral-200 text-neutral-700'
+                        } ${msg.role === 'assistant' ? 'animate-fadeIn' : ''}`}
+                      >
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                          {msg.content}
+                        </div>
+                        
+                        {/* Timestamp */}
+                        <div className={`text-xs mt-2 ${
+                          msg.role === 'user' ? 'text-sage-200' : 'text-neutral-400'
+                        }`}>
+                          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
+              
+              {/* Enhanced Typing Indicator */}
               {sendingMessage && (
-                <div className="flex justify-start">
-                  <div className="bg-neutral-100 text-neutral-600 px-4 py-3 rounded-lg rounded-bl-none">
-                    <div className="flex gap-2 items-center">
-                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                <div className="flex justify-start animate-slideIn">
+                  <div className="max-w-xs lg:max-w-md">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center mb-3 shadow-md animate-pulse">
+                      🤖
+                    </div>
+                    <div className="bg-white border border-neutral-200 px-6 py-4 rounded-2xl shadow-sm">
+                      <div className="flex gap-2 items-center">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-sage-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-sage-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-sage-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                        <span className="text-xs text-neutral-500 ml-2">NutriBot is thinking...</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -228,49 +458,186 @@ What would you like to know about this product?`
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="border-t border-neutral-200 p-4 bg-neutral-50">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !sendingMessage && sendMessage()}
-                  placeholder="Ask about this product..."
-                  disabled={sendingMessage}
-                  className="flex-1 px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent placeholder-neutral-400 text-neutral-600"
-                />
+            {/* Enhanced Quick Suggestions */}
+            <div className="border-t border-neutral-200 bg-gradient-to-r from-neutral-50 to-white p-4">
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-neutral-600 mb-2">💡 Quick Questions:</p>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { text: 'Is this healthy for me?', icon: '❤️' },
+                    { text: 'What are the ingredients?', icon: '📋' },
+                    { text: 'Any allergens?', icon: '⚠️' },
+                    { text: 'Better alternatives?', icon: '🔄' },
+                    { text: 'Nutrition facts?', icon: '📊' },
+                    { text: 'How much can I eat?', icon: '🥄' }
+                  ].map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (!sendingMessage && !messageInput) {
+                          setMessageInput(suggestion.text)
+                          // Auto-send the suggestion
+                          setTimeout(() => sendMessage(), 100)
+                        }
+                      }}
+                      disabled={sendingMessage}
+                      className="flex items-center gap-1 px-3 py-2 text-xs bg-sage-100 text-sage-700 rounded-full hover:bg-sage-200 transition-all border border-sage-200 disabled:opacity-50 hover:scale-105 transform"
+                    >
+                      <span>{suggestion.icon}</span>
+                      <span>{suggestion.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Enhanced Input Area */}
+              <div className="flex gap-3 items-end">
+                <div className="flex-1 relative">
+                  <textarea
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        if (!sendingMessage) sendMessage()
+                      }
+                    }}
+                    placeholder="Ask about ingredients, health impacts, alternatives..."
+                    disabled={sendingMessage}
+                    rows={messageInput.includes('\n') ? 3 : 1}
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent placeholder-neutral-400 text-neutral-700 bg-white transition-all resize-none"
+                  />
+                  {/* Character count */}
+                  <div className="absolute bottom-1 right-2 text-xs text-neutral-400">
+                    {messageInput.length}/500
+                  </div>
+                </div>
                 <button
                   onClick={sendMessage}
-                  disabled={sendingMessage || !messageInput.trim()}
-                  className="px-4 py-2 bg-sage-600 text-white rounded-lg hover:bg-sage-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+                  disabled={sendingMessage || !messageInput.trim() || messageInput.length > 500}
+                  className="px-4 py-3 bg-gradient-to-r from-sage-600 to-sage-700 text-white rounded-xl hover:from-sage-700 hover:to-sage-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
                 >
-                  <Send className="w-4 h-4" strokeWidth={2} />
+                  {sendingMessage ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Send className="w-4 h-4" strokeWidth={2} />
+                  )}
                 </button>
               </div>
+              
+              {/* Input Help Text */}
+              <p className="text-xs text-neutral-500 mt-2 text-center">
+                💬 Press Enter to send • Shift+Enter for new line • Ask about health impacts, alternatives, or nutrition
+              </p>
             </div>
 
-            {/* New Scan Button */}
-            <div className="border-t border-neutral-200 p-4">
-              <button
-                onClick={() => {
-                  setResult(null)
-                  setChatMessages([])
-                  setMessageInput('')
-                  setError('')
-                }}
-                className="w-full px-4 py-2 bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 font-medium transition text-sm"
-              >
-                Scan Another Product
-              </button>
+            {/* Enhanced Action Area */}
+            <div className="border-t border-neutral-200 p-4 bg-neutral-50">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setResult(null)
+                    setChatMessages([])
+                    setMessageInput('')
+                    setError('')
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-sage-100 to-sage-200 text-sage-700 rounded-lg hover:from-sage-200 hover:to-sage-300 font-medium transition-all border border-sage-300 hover:shadow-md transform hover:scale-[1.02]"
+                >
+                  <Camera className="w-4 h-4" strokeWidth={2} />
+                  Scan Another Product
+                </button>
+                <Link 
+                  href="/dashboard"
+                  className="px-6 py-3 bg-white border border-neutral-200 text-neutral-600 rounded-lg hover:bg-neutral-50 font-medium transition-all flex items-center gap-2 hover:shadow-md"
+                >
+                  <CheckCircle className="w-4 h-4" strokeWidth={2} />
+                  Done
+                </Link>
+              </div>
+              
+              {/* Chat Stats */}
+              <div className="flex justify-center items-center gap-6 mt-3 text-xs text-neutral-500">
+                <div className="flex items-center gap-1">
+                  <span>💬</span>
+                  <span>{chatMessages.length} messages</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>🤖</span>
+                  <span>Powered by Gemini AI</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>🔒</span>
+                  <span>Private conversation</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Error Display */}
+        {/* Enhanced Error Display */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-700 text-sm">
-            {error}
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                <span className="text-red-600">⚠️</span>
+              </div>
+              <div>
+                <p className="font-medium">Analysis Error</p>
+                <p className="text-xs text-red-600 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Chat Help Button */}
+        {result && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <button
+              onClick={() => setShowChatHelp(!showChatHelp)}
+              className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 flex items-center justify-center"
+            >
+              <HelpCircle className="w-6 h-6" strokeWidth={2} />
+            </button>
+            
+            {/* Chat Help Tooltip */}
+            {showChatHelp && (
+              <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-xl border border-neutral-200 p-4 w-64 animate-fadeIn">
+                <div className="text-sm space-y-2">
+                  <div className="font-semibold text-neutral-700 mb-3 flex items-center gap-2">
+                    <Keyboard className="w-4 h-4" strokeWidth={2} />
+                    Chat Tips
+                  </div>
+                  
+                  <div className="space-y-2 text-xs text-neutral-600">
+                    <div className="flex justify-between">
+                      <span>Send message:</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs">Enter</kbd>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>New line:</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs">Shift + Enter</kbd>
+                    </div>
+                    <div className="border-t border-neutral-200 pt-2 mt-2">
+                      <p className="font-medium mb-1">Try asking:</p>
+                      <ul className="space-y-1 text-xs">
+                        <li>• "Is this good for PCOS?"</li>
+                        <li>• "How much sugar does it have?"</li>
+                        <li>• "What are healthier alternatives?"</li>
+                        <li>• "Should I avoid this ingredient?"</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Close button */}
+                <button 
+                  onClick={() => setShowChatHelp(false)}
+                  className="absolute top-2 right-2 text-neutral-400 hover:text-neutral-600"
+                >
+                  ×
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
