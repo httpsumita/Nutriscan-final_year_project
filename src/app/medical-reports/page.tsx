@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Upload, FileText, ArrowLeft, Download, Trash2, Calendar, Shield, Plus, CheckCircle } from 'lucide-react'
 
 interface MedicalReport {
@@ -13,13 +14,45 @@ interface MedicalReport {
 }
 
 export default function MedicalReportsPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [reports, setReports] = useState<MedicalReport[]>([])
   const [uploading, setUploading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+    }
+  }, [status, router])
+
+  // Fetch existing reports on mount
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        if (session?.user?.id) {
+          const response = await fetch('/api/medical-reports')
+          const data = await response.json()
+
+          if (data.ok && data.reports) {
+            setReports(data.reports)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch reports:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (session?.user?.id) {
+      fetchReports()
+    }
+  }, [session])
 
   const handleFileSelect = () => {
     fileInputRef.current?.click()
@@ -107,6 +140,19 @@ export default function MedicalReportsPage() {
       month: 'short',
       day: 'numeric'
     })
+  }
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sage-50 to-neutral-0">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 bg-sage-100 rounded-full flex items-center justify-center mb-4">
+            <div className="w-8 h-8 border-2 border-sage-400 border-t-sage-700 rounded-full animate-spin" />
+          </div>
+          <p className="text-neutral-600">Loading reports...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

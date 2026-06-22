@@ -413,18 +413,57 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
                       
                       {/* Message Content */}
                       <div
-                        className={`px-6 py-4 rounded-2xl shadow-sm border ${
+                        className={`px-6 py-4 rounded-2xl shadow-md border ${
                           msg.role === 'user'
                             ? 'bg-gradient-to-br from-sage-600 to-sage-700 text-white border-sage-700'
                             : 'bg-white border-neutral-200 text-neutral-700'
                         } ${msg.role === 'assistant' ? 'animate-fadeIn' : ''}`}
                       >
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                          {msg.content}
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {msg.content.split('\n').map((line, i) => {
+                            // Format bold text (**text**)
+                            if (line.startsWith('**') && line.endsWith('**')) {
+                              return (
+                                <p key={i} className={`font-bold text-base mb-2 ${
+                                  msg.role === 'user' ? 'text-white' : 'text-sage-700'
+                                }`}>
+                                  {line.replace(/\*\*/g, '')}
+                                </p>
+                              )
+                            }
+                            
+                            // Format bullet points (•)
+                            if (line.startsWith('•')) {
+                              return (
+                                <p key={i} className="ml-4 mb-1.5 flex items-start gap-2">
+                                  <span className={msg.role === 'user' ? 'text-sage-200' : 'text-sage-500'}>•</span>
+                                  <span>{line.substring(1).trim()}</span>
+                                </p>
+                              )
+                            }
+                            
+                            // Format headings with emojis
+                            if (line.includes('🎉') || line.includes('✅') || line.includes('⚠️') || line.includes('💬')) {
+                              return (
+                                <p key={i} className={`font-semibold mb-2 ${
+                                  msg.role === 'user' ? 'text-white' : 'text-neutral-800'
+                                }`}>
+                                  {line}
+                                </p>
+                              )
+                            }
+                            
+                            // Regular text
+                            return line ? (
+                              <p key={i} className="mb-2">{line}</p>
+                            ) : (
+                              <br key={i} />
+                            )
+                          })}
                         </div>
                         
                         {/* Timestamp */}
-                        <div className={`text-xs mt-2 ${
+                        <div className={`text-xs mt-3 ${
                           msg.role === 'user' ? 'text-sage-200' : 'text-neutral-400'
                         }`}>
                           {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

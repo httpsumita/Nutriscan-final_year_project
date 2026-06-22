@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, TrendingUp, Calendar, Target, Award, Zap, AlertCircle, CheckCircle, BarChart3, PieChart, Activity } from 'lucide-react'
 
 interface InsightData {
@@ -25,7 +26,8 @@ interface InsightData {
 }
 
 export default function InsightsPage() {
-  const { data: session } = useSession()
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
   const [insights, setInsights] = useState<InsightData>({
     weeklyScore: [7.2, 6.8, 7.5, 8.1, 7.9, 8.3, 7.8],
@@ -60,15 +62,34 @@ export default function InsightsPage() {
     ]
   })
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin')
+    }
+  }, [status, router])
+
   useEffect(() => {
     const fetchInsights = async () => {
       try {
         if (session?.user?.id) {
-          const response = await fetch('/api/insights')
+          const response = await fetch(`/api/insights?userId=${session.user.id}`)
           const data = await response.json()
-          if (data.ok) {
-            // For now, use mock data. In production, this would be real insights
-            setLoading(false)
+          
+          if (data.ok && data.insights) {
+            // Use real data from backend if available
+            // For now, the backend returns recommendations which we can use
+            // Keep the mock data structure but can be enhanced with backend data
+            if (data.insights.recommendations) {
+              setInsights(prev => ({
+                ...prev,
+                recommendations: data.insights.recommendations.map((rec: string) => ({
+                  type: 'info' as const,
+                  title: 'Personalized Insight',
+                  message: rec
+                }))
+              }))
+            }
           }
         }
       } catch (error) {
@@ -80,15 +101,13 @@ export default function InsightsPage() {
 
     if (session?.user?.id) {
       fetchInsights()
-    } else {
-      setLoading(false)
     }
   }, [session])
 
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const maxScore = Math.max(...insights.weeklyScore)
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sage-50 to-neutral-50">
         <div className="text-center">
