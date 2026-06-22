@@ -83,20 +83,29 @@ export async function POST(req: Request) {
 
     const formData = await req.formData()
     const file = formData.get('file') as File
-
+    
     if (!file) {
       return NextResponse.json({ ok: false, error: 'No file provided' }, { status: 400 })
     }
 
+<<<<<<< HEAD
+=======
+    // Validate file type and size
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    const maxSize = 10 * 1024 * 1024 // 10MB
+
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { ok: false, error: 'Only PDF and image files are allowed' },
+        { ok: false, error: 'Invalid file type. Please upload PDF, JPG, or PNG files.' },
         { status: 400 }
       )
     }
 
+<<<<<<< HEAD
     const maxSize = 10 * 1024 * 1024
+=======
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
     if (file.size > maxSize) {
       return NextResponse.json(
         { ok: false, error: 'File size must be less than 10MB' },
@@ -104,6 +113,7 @@ export async function POST(req: Request) {
       )
     }
 
+<<<<<<< HEAD
     // Convert file to base64
     const buffer = await file.arrayBuffer()
     const base64 = Buffer.from(buffer).toString('base64')
@@ -113,11 +123,17 @@ export async function POST(req: Request) {
 
     // Run AI analysis on the document
     const analysisResult = await analyzeHealthDocument(base64, mimeTypeForAnalysis)
+=======
+    // Convert file to buffer for storage
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
 
-    // Store in database
+    // Store in database (encrypted)
     const report = await prisma.medicalReport.create({
       data: {
         userId: session.user.id,
+<<<<<<< HEAD
         fileUrl: `data:${file.type};base64,${base64}`,
         parsedData: {
           fileName: file.name,
@@ -144,17 +160,45 @@ export async function POST(req: Request) {
       }
     }
 
+=======
+        fileName: file.name,
+        data: buffer,
+        fileSize: file.size,
+        mimeType: file.type,
+        encrypted: true,
+        uploadedAt: new Date()
+      }
+    })
+
+    // Return report info without sensitive data
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
     return NextResponse.json({
       ok: true,
       report: {
         id: report.id,
+<<<<<<< HEAD
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
         analysisResult,
       },
+=======
+        fileName: report.fileName,
+        fileSize: report.fileSize,
+        uploadedAt: report.uploadedAt.toISOString()
+      }
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
     })
+
   } catch (error) {
+<<<<<<< HEAD
     console.error('Medical report upload error:', error)
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
+=======
+    console.error('Upload medical report API error:', error)
+    return NextResponse.json(
+      { ok: false, error: 'Internal server error' },
+      { status: 500 }
+    )
+>>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
   }
 }
