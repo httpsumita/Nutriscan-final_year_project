@@ -30,12 +30,20 @@ export default function LandingPage() {
             <a href="#how" className="text-neutral-600 hover:text-sage-700 transition text-sm font-medium">How it Works</a>
             <a href="#" className="text-neutral-600 hover:text-sage-700 transition text-sm font-medium">About</a>
           </div>
-          <Link
-            href="/auth/signin"
-            className="px-6 py-2 bg-sage-400 text-white rounded-lg text-sm font-medium hover:bg-sage-700 transition"
-          >
-            Get Started
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/signin"
+              className="px-5 py-2 border border-sage-400 text-sage-700 rounded-lg text-sm font-medium hover:bg-sage-50 transition"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="px-5 py-2 bg-sage-400 text-white rounded-lg text-sm font-medium hover:bg-sage-700 transition"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -52,14 +60,17 @@ export default function LandingPage() {
               </p>
               <div className="flex gap-4 flex-col sm:flex-row">
                 <Link
-                  href="/auth/signin"
+                  href="/auth/signup"
                   className="px-8 py-3 bg-sage-700 text-white rounded-lg font-medium hover:bg-sage-800 transition text-center"
                 >
-                  Start Free
+                  Get Started Free
                 </Link>
-                <button className="px-8 py-3 bg-white text-sage-700 border border-sage-400 rounded-lg font-medium hover:bg-sage-50 transition">
-                  Learn More
-                </button>
+                <Link
+                  href="/auth/signin"
+                  className="px-8 py-3 bg-white text-sage-700 border border-sage-400 rounded-lg font-medium hover:bg-sage-50 transition text-center"
+                >
+                  Sign In
+                </Link>
               </div>
             </div>
             
@@ -138,7 +149,7 @@ export default function LandingPage() {
           <h2 className="text-4xl font-medium text-neutral-600 mb-4">Ready to make smarter choices?</h2>
           <p className="text-neutral-600 text-lg mb-8 opacity-90">Join thousands who are transforming their nutrition based on their hormonal health.</p>
           <Link
-            href="/auth/signin"
+            href="/auth/signup"
             className="inline-block px-8 py-4 bg-sage-700 text-white rounded-lg font-medium hover:bg-sage-800 transition"
           >
             Get Started Free

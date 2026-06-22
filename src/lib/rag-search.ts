@@ -1,6 +1,6 @@
-import { search } from 'duckduckgo-search'
 import fs from 'fs'
 import path from 'path'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export interface FoodDbEntry {
   id: number
@@ -12,20 +12,33 @@ export interface FoodDbEntry {
   picture_file_name: string
 }
 
+export interface AnalysisOption {
+  option: '1' | '2'
+  title: string
+  source: string
+  ingredients: string[]
+  analysis: string
+  healthImpact: {
+    positive: string[]
+    negative: string[]
+    neutral: string[]
+  }
+  recommendation: string
+  score: number
+}
+
 export interface RagContext {
   foodDbMatches: FoodDbEntry[]
-  webSearchResults: any[]
-  combinedNutritionInfo: {
-    calories?: number
-    protein?: number
-    carbs?: number
-    fat?: number
-    fiber?: number
-    ingredients?: string[]
-    allergens?: string[]
-    chemicals?: string[]
-    [key: string]: any
+  analysisOptions: AnalysisOption[]
+  combinedNutritionInfo: Record<string, any>
+}
+
+const getGenAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not set')
   }
+  return new GoogleGenerativeAI(apiKey)
 }
 
 /**
@@ -33,7 +46,12 @@ export interface RagContext {
  */
 export async function searchFoodDatabase(ingredients: string[]): Promise<FoodDbEntry[]> {
   try {
-    const foodDbPath = path.join(process.cwd(), 'food_db', 'foodb_2020_04_07_json', 'Food.json')
+    const foodDbPath = path.join(
+      process.cwd(),
+      'food_db',
+      'foodb_2020_04_07_json',
+      'Food.json'
+    )
 
     // Check if file exists
     if (!fs.existsSync(foodDbPath)) {
@@ -42,7 +60,7 @@ export async function searchFoodDatabase(ingredients: string[]): Promise<FoodDbE
     }
 
     const fileContent = fs.readFileSync(foodDbPath, 'utf-8')
-    const lines = fileContent.split('\n').filter(line => line.trim())
+    const lines = fileContent.split('\n').filter((line) => line.trim())
 
     const matches: FoodDbEntry[] = []
     const seenIds = new Set<number>()
@@ -75,7 +93,7 @@ export async function searchFoodDatabase(ingredients: string[]): Promise<FoodDbE
       }
     }
 
-    return matches.slice(0, 10) // Limit to 10 results
+    return matches.slice(0, 10)
   } catch (error) {
     console.error('Error searching food database:', error)
     return []
@@ -85,127 +103,337 @@ export async function searchFoodDatabase(ingredients: string[]): Promise<FoodDbE
 /**
  * Search DuckDuckGo for nutritional information about ingredients
  */
-export async function searchNutritionInfo(ingredient: string): Promise<any[]> {
+export async function searchDuckDuckGo(
+  ingredient: string
+): Promise<string> {
   try {
-    const query = `${ingredient} nutrition facts calories protein carbs fat`
+    // Using DuckDuckGo API endpoint without the search function
+    const query = encodeURIComponent(
+      `${ingredient} nutrition facts health effects on human body`
+    )
+    const url = `https://api.duckduckgo.com/?q=${query}&format=json`
 
-    // Use duckduckgo instant answer API (free, no API key required)
-    const results = await search({
-      query,
-      max_results: 3
-    })
+    const response = await fetch(url)
+    const data = await response.json()
 
-    return results || []
+    // Extract relevant information from the response
+    let result = `Search results for ${ingredient}:\n`
+
+    if (data.AbstractText) {
+      result += `Summary: ${data.AbstractText}\n`
+    }
+
+    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+      result += 'Related information:\n'
+      data.RelatedTopics.slice(0, 3).forEach((topic: any) => {
+        if (topic.Text) {
+          result += `- ${topic.Text}\n`
+        }
+      })
+    }
+
+    return result
   } catch (error) {
-    console.error('Error searching nutrition info:', error)
-    return []
+    console.error(`Error searching DuckDuckGo for ${ingredient}:`, error)
+    return `Unable to fetch information about ${ingredient}`
   }
 }
 
 /**
- * Build RAG context by combining Food.json matches and web search results
+ * Parse JSON from response text, handling markdown formatting
  */
-export async function buildRagContext(ingredients: string[]): Promise<RagContext> {
-  // Search Food.json database
-  const foodDbMatches = await searchFoodDatabase(ingredients)
-
-  // Search web for nutrition info on primary ingredients
-  const primaryIngredients = ingredients.slice(0, 3) // Search top 3 ingredients
-  const webSearchResults: any[] = []
-
-  for (const ingredient of primaryIngredients) {
-    const results = await searchNutritionInfo(ingredient)
-    webSearchResults.push(...results)
+function parseJsonResponse(text: string): any {
+  // Remove markdown code blocks if present
+  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+  
+  // Try to find JSON object - be more flexible with regex
+  const jsonMatch = cleaned.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/)
+  
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0])
+    } catch (e) {
+      console.error('Failed to parse JSON:', jsonMatch[0], e)
+      return null
+    }
   }
+  
+  return null
+}
 
-  // Parse and combine nutritional information
-  const combinedNutritionInfo = parseNutritionInfo(foodDbMatches, webSearchResults)
+/**
+ * Analyze ingredients using Gemini with Food.json data
+ */
+export async function analyzeWithFoodDb(
+  ingredients: string[],
+  foodDbMatches: FoodDbEntry[],
+  userConditions: string[],
+  userGoals: string[]
+): Promise<AnalysisOption> {
+  const genAI = getGenAI()
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+
+  const foodDbContext = foodDbMatches
+    .map(
+      (f) =>
+        `${f.name} (${f.food_group}): ${f.description.substring(0, 200)}`
+    )
+    .join('\n')
+
+  const prompt = `You are a nutritional health expert. Rate this product ONLY - do NOT discuss general nutrition or make comparisons.
+
+INGREDIENTS: ${ingredients.join(', ')}
+
+FOOD DATABASE INFORMATION:
+${foodDbContext || 'No database matches found'}
+
+USER PROFILE:
+- Health Conditions: ${userConditions.join(', ') || 'Not specified'}
+- Health Goals: ${userGoals.join(', ') || 'Not specified'}
+
+Be DIRECT and CONCISE. Return ONLY valid JSON (no markdown):
+{
+  "ingredients": ["ingredient1"],
+  "analysis": "One sentence impact on their conditions",
+  "healthImpact": {
+    "positive": ["benefit1"],
+    "negative": ["risk1"],
+    "neutral": []
+  },
+  "recommendation": "Yes/No - and why in ONE sentence",
+  "score": 7
+}`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
+    const parsed = parseJsonResponse(responseText)
+
+    if (parsed) {
+      return {
+        option: '1',
+        title: 'Food Database Analysis',
+        source: 'Food.json Database',
+        ingredients: parsed.ingredients || ingredients,
+        analysis: parsed.analysis || 'Unable to analyze',
+        healthImpact: parsed.healthImpact || {
+          positive: [],
+          negative: [],
+          neutral: []
+        },
+        recommendation: parsed.recommendation || 'No recommendation',
+        score: parsed.score || 5
+      }
+    }
+  } catch (error) {
+    console.error('Error analyzing with Food.json:', error)
+  }
 
   return {
-    foodDbMatches,
-    webSearchResults,
-    combinedNutritionInfo
+    option: '1',
+    title: 'Food Database Analysis',
+    source: 'Food.json Database',
+    ingredients,
+    analysis: 'Analysis unavailable',
+    healthImpact: {
+      positive: [],
+      negative: [],
+      neutral: []
+    },
+    recommendation: 'Unable to generate recommendation',
+    score: 0
   }
 }
 
 /**
- * Parse and combine nutritional data from Food.json and web searches
+ * Analyze ingredients using Gemini with DuckDuckGo research
  */
-function parseNutritionInfo(foodDbMatches: FoodDbEntry[], webResults: any[]): RagContext['combinedNutritionInfo'] {
-  const nutrition: RagContext['combinedNutritionInfo'] = {
-    ingredients: [],
-    allergens: [],
-    chemicals: []
-  }
+export async function analyzeWithWebResearch(
+  ingredients: string[],
+  webData: Record<string, string>,
+  userConditions: string[],
+  userGoals: string[]
+): Promise<AnalysisOption> {
+  const genAI = getGenAI()
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-  // Extract from Food.json descriptions
-  for (const food of foodDbMatches) {
-    // Extract nutrients mentioned in description
-    const description = food.description.toLowerCase()
+  const webContext = Object.entries(webData)
+    .map(([ing, data]) => `${ing}:\n${data}`)
+    .join('\n\n')
 
-    if (description.includes('calorie')) nutrition.calories = true as any
-    if (description.includes('protein')) nutrition.protein = true as any
-    if (description.includes('fiber')) nutrition.fiber = true as any
-    if (description.includes('vitamin')) nutrition.vitamins = true as any
+  const prompt = `You are a nutritional health expert. Rate this product ONLY - do NOT discuss general nutrition or make comparisons.
 
-    // Track allergen keywords
-    const allergens = ['milk', 'eggs', 'peanuts', 'tree nuts', 'fish', 'shellfish', 'soy', 'wheat', 'sesame']
-    for (const allergen of allergens) {
-      if (description.includes(allergen)) {
-        nutrition.allergens?.push(allergen)
+INGREDIENTS: ${ingredients.join(', ')}
+
+RESEARCH DATA:
+${webContext}
+
+USER PROFILE:
+- Health Conditions: ${userConditions.join(', ') || 'Not specified'}
+- Health Goals: ${userGoals.join(', ') || 'Not specified'}
+
+Be DIRECT and CONCISE. Return ONLY valid JSON (no markdown):
+{
+  "ingredients": ["ingredient1"],
+  "analysis": "One sentence impact on their conditions",
+  "healthImpact": {
+    "positive": ["benefit1"],
+    "negative": ["risk1"],
+    "neutral": []
+  },
+  "recommendation": "Yes/No - and why in ONE sentence",
+  "score": 7
+}`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
+    const parsed = parseJsonResponse(responseText)
+
+    if (parsed) {
+      return {
+        option: '2',
+        title: 'Web Research Analysis',
+        source: 'DuckDuckGo Research',
+        ingredients: parsed.ingredients || ingredients,
+        analysis: parsed.analysis || 'Unable to analyze',
+        healthImpact: parsed.healthImpact || {
+          positive: [],
+          negative: [],
+          neutral: []
+        },
+        recommendation: parsed.recommendation || 'No recommendation',
+        score: parsed.score || 5
       }
     }
-
-    nutrition.ingredients?.push(food.name)
+  } catch (error) {
+    console.error('Error analyzing with web research:', error)
   }
 
-  // Parse web results for additional nutrition data
-  for (const result of webResults) {
-    if (result.body) {
-      const body = result.body.toLowerCase()
-
-      // Try to extract calorie info
-      const calorieMatch = body.match(/(\d+)\s*(?:kcal|calories|cal)/i)
-      if (calorieMatch && !nutrition.calories) {
-        nutrition.calories = parseInt(calorieMatch[1])
-      }
-
-      // Extract macro info
-      if (body.includes('protein')) nutrition.protein = true as any
-      if (body.includes('carb')) nutrition.carbs = true as any
-      if (body.includes('fat')) nutrition.fat = true as any
-      if (body.includes('fiber')) nutrition.fiber = true as any
-    }
+  return {
+    option: '2',
+    title: 'Web Research Analysis',
+    source: 'DuckDuckGo Research',
+    ingredients,
+    analysis: 'Analysis unavailable',
+    healthImpact: {
+      positive: [],
+      negative: [],
+      neutral: []
+    },
+    recommendation: 'Unable to generate recommendation',
+    score: 0
   }
-
-  return nutrition
 }
 
 /**
- * Extract relevant RAG context for LLM prompt
+ * Compare two analysis options and generate final recommendation
  */
-export function formatRagContextForPrompt(context: RagContext): string {
-  let prompt = ''
+export async function compareAnalysisOptions(
+  option1: AnalysisOption,
+  option2: AnalysisOption,
+  userConditions: string[],
+  userGoals: string[]
+): Promise<{
+  comparison: string
+  finalRecommendation: string
+  bestOption: '1' | '2'
+  combinedScore: number
+}> {
+  const genAI = getGenAI()
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-  if (context.foodDbMatches.length > 0) {
-    prompt += 'Food Database Matches:\n'
-    for (const food of context.foodDbMatches) {
-      prompt += `- ${food.name} (${food.food_group}): ${food.description.substring(0, 100)}...\n`
+  const prompt = `You are a nutrition expert. Give a FINAL verdict - YES eat this or NO avoid it.
+
+OPTION 1 Score: ${option1.score}/10
+OPTION 2 Score: ${option2.score}/10
+
+USER: ${userConditions.join(', ') || 'No conditions specified'} | Goals: ${userGoals.join(', ') || 'None'}
+
+Be DIRECT. Return ONLY valid JSON (no markdown):
+{
+  "comparison": "",
+  "finalRecommendation": "YES/NO - one sentence reason",
+  "bestOption": "1 or 2",
+  "combinedScore": 7
+}`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
+    const parsed = parseJsonResponse(responseText)
+
+    if (parsed) {
+      return {
+        comparison: parsed.comparison || '',
+        finalRecommendation: parsed.finalRecommendation || 'Unable to generate recommendation',
+        bestOption: parsed.bestOption === '2' ? '2' : '1',
+        combinedScore: parsed.combinedScore || 5
+      }
     }
-    prompt += '\n'
+  } catch (error) {
+    console.error('Error comparing analyses:', error)
   }
 
-  if (context.combinedNutritionInfo) {
-    prompt += 'Nutritional Information:\n'
-    prompt += `- Ingredients: ${context.combinedNutritionInfo.ingredients?.join(', ') || 'N/A'}\n`
-    prompt += `- Allergens: ${context.combinedNutritionInfo.allergens?.length ? context.combinedNutritionInfo.allergens.join(', ') : 'None detected'}\n`
-
-    if (context.combinedNutritionInfo.calories) {
-      prompt += `- Calories: ${context.combinedNutritionInfo.calories} per serving\n`
-    }
-
-    prompt += '\n'
+  return {
+    comparison: '',
+    finalRecommendation: 'Unable to generate recommendation',
+    bestOption: '1',
+    combinedScore: 0
   }
+}
 
-  return prompt
+/**
+ * Build complete RAG context with dual analysis
+ */
+export async function buildRagContext(
+  ingredients: string[],
+  userConditions: string[] = [],
+  userGoals: string[] = []
+): Promise<RagContext> {
+  try {
+    // Step 1: Search Food.json database
+    const foodDbMatches = await searchFoodDatabase(ingredients)
+
+    // Step 2: Fetch web research data for each ingredient
+    const webData: Record<string, string> = {}
+    const webDataPromises = ingredients.map(async (ing) => {
+      const data = await searchDuckDuckGo(ing)
+      webData[ing] = data
+    })
+    await Promise.all(webDataPromises)
+
+    // Step 3: Run both analyses in parallel using LLM
+    const [option1, option2] = await Promise.all([
+      analyzeWithFoodDb(ingredients, foodDbMatches, userConditions, userGoals),
+      analyzeWithWebResearch(ingredients, webData, userConditions, userGoals)
+    ])
+
+    // Step 4: Compare and generate final recommendation
+    const comparison = await compareAnalysisOptions(
+      option1,
+      option2,
+      userConditions,
+      userGoals
+    )
+
+    return {
+      foodDbMatches,
+      analysisOptions: [option1, option2],
+      combinedNutritionInfo: {
+        options: [option1, option2],
+        comparison: comparison.comparison,
+        finalRecommendation: comparison.finalRecommendation,
+        bestOption: comparison.bestOption,
+        combinedScore: comparison.combinedScore
+      }
+    }
+  } catch (error) {
+    console.error('Error building RAG context:', error)
+    return {
+      foodDbMatches: [],
+      analysisOptions: [],
+      combinedNutritionInfo: {}
+    }
+  }
 }

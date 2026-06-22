@@ -43,7 +43,7 @@ export default function SignIn() {
             </div>
             <span className="text-2xl font-medium text-neutral-600">NutriScan</span>
           </div>
-          <h1 className="text-3xl font-medium text-neutral-600">Welcome back</h1>
+          <h1 className="text-3xl font-medium text-neutral-600">Welcome</h1>
           <p className="text-neutral-600 opacity-75 text-sm mt-2">Sign in to your hormonal health account</p>
         </div>
 
@@ -111,8 +111,8 @@ export default function SignIn() {
         {/* Footer Link */}
         <p className="text-center text-sm text-neutral-600 mt-6">
           New to NutriScan?{' '}
-          <Link href="/" className="text-sage-700 font-medium hover:text-sage-800">
-            Learn more
+          <Link href="/auth/signup" className="text-sage-700 font-medium hover:text-sage-800">
+            Create an account
           </Link>
         </p>
       </div>

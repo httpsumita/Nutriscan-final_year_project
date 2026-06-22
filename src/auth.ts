@@ -35,27 +35,23 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           }
         }
 
-        // If database is available, try to find/create user
+        // Look up user in database and verify password
         try {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email as string }
           }).catch(() => null)
 
-          if (user) {
-            return { id: user.id, email: user.email, name: user.name }
+          if (!user) return null
+
+          // Check password — plain text comparison for demo
+          // TODO: use bcrypt.compare(credentials.password, user.password) in production
+          if (user.password && user.password !== credentials.password) {
+            return null
           }
 
-          // Create user if doesn't exist (demo mode)
-          const newUser = await prisma.user.create({
-            data: {
-              email: credentials.email as string,
-              name: "User"
-            }
-          })
-
-          return { id: newUser.id, email: newUser.email, name: newUser.name }
+          return { id: user.id, email: user.email, name: user.name }
         } catch (error) {
-          // Database unavailable, use demo fallback
+          // Database unavailable
           return null
         }
       }

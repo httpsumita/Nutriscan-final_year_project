@@ -13,6 +13,7 @@ model User {
   id         String   @id @default(uuid())
   email      String?  @unique
   name       String
+  password   String?
   age        Int?
   sex        String?
   conditions String[] @default([])
@@ -21,6 +22,8 @@ model User {
   reports    MedicalReport[]
   scans      Scan[]
   dailyLogs  DailyLog[]
+  calorieLogs CalorieLog[]
+  waterIntakes WaterIntake[]
 }
 
 model MedicalReport {
@@ -52,11 +55,31 @@ model DailyLog {
   hormonalLoadScore Int
 }
 
+model CalorieLog {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  foodName  String
+  category  String
+  calories  Int
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model WaterIntake {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Int      // in ml
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
 model ResearchDoc {
   id        String   @id @default(uuid())
   condition String
   content   String
-  source    String?  // e.g., "pubmed" or "openfda"
-  embedding String?  // Store as JSON string; can migrate to pgvector(1536) when ready
+  source    String?
+  embedding String?
   createdAt DateTime @default(now())
 }
