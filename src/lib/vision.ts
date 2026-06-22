@@ -1,8 +1,4 @@
-import vision from "@google-cloud/vision"
-
-const client = new vision.ImageAnnotatorClient({
-  keyFilename: process.env.GOOGLE_CLOUD_VISION_KEY_PATH
-})
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 interface ProductInfo {
   productName: string
@@ -11,130 +7,80 @@ interface ProductInfo {
   allergens: string[]
 }
 
-/**
- * Extract text from product image using Google Cloud Vision OCR (free tier)
- * Free tier includes 1,000 text detection requests per month
- */
-export async function extractProductTextFromImage(imageData: string | Buffer): Promise<ProductInfo> {
-  try {
-    let request: any
-
-    if (typeof imageData === "string" && imageData.startsWith("data:image")) {
-      // Base64 data URL
-      const base64 = imageData.split(",")[1]
-      request = {
-        image: {
-          content: base64
-        }
-      }
-    } else if (typeof imageData === "string") {
-      // Base64 string
-      request = {
-        image: {
-          content: imageData
-        }
-      }
-    } else {
-      // Buffer
-      request = {
-        image: {
-          content: imageData
-        }
-      }
-    }
-
-    // Use TEXT_DETECTION for free tier (1000 requests/month)
-    const [result] = await client.textDetection(request)
-    const detections = result.textAnnotations
-
-    if (!detections || detections.length === 0) {
-      return {
-        productName: "unknown",
-        ingredients: [],
-        nutrition: {},
-        allergens: []
-      }
-    }
-
-    // First annotation contains all text
-    const fullText = detections[0].description || ""
-
-    // Parse the extracted text
-    return parseProductText(fullText)
-  } catch (error) {
-    console.error("Vision API error:", error)
-    return {
-      productName: "unknown",
-      ingredients: [],
-      nutrition: {},
-      allergens: []
-    }
+const getGenAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY environment variable is not set')
   }
+  return new GoogleGenerativeAI(apiKey)
 }
 
 /**
- * Parse extracted product text to extract ingredients, nutrition, and allergens
+ * Extract text from product image using Gemini Vision API
  */
-function parseProductText(text: string): ProductInfo {
-  const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0)
+export async function extractProductTextFromImage(
+  imageData: string | Buffer
+): Promise<ProductInfo> {
+  try {
+    const genAI = getGenAI()
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-  let productName = "unknown"
-  const ingredients: string[] = []
-  const nutrition: Record<string, any> = {}
-  const allergens: string[] = []
+    // Convert Buffer to base64 if needed
+    let base64Data = typeof imageData === 'string' ? imageData : imageData.toString('base64')
 
-  let section = "general"
-
-  const commonAllergens = ["milk", "eggs", "peanuts", "tree nuts", "fish", "shellfish", "soy", "wheat", "sesame"]
-
-  for (const line of lines) {
-    const lowerLine = line.toLowerCase()
-
-    // Detect sections
-    if (lowerLine.includes("ingredient") || lowerLine.includes("contains")) {
-      section = "ingredients"
-      continue
-    }
-    if (lowerLine.includes("nutrition") || lowerLine.includes("nutrition facts")) {
-      section = "nutrition"
-      continue
-    }
-    if (lowerLine.includes("allergen") || lowerLine.includes("allergy") || lowerLine.includes("may contain")) {
-      section = "allergens"
-      continue
+    // Remove data URL prefix if present
+    if (base64Data.startsWith('data:image')) {
+      base64Data = base64Data.split(',')[1]
     }
 
-    // Parse based on section
-    if (section === "general" && !productName.includes("unknown")) {
-      productName = line
-    } else if (section === "ingredients") {
-      // Clean up ingredient line
-      if (line && !line.match(/^\d+/)) {
-        ingredients.push(line.replace(/,\s*$/, ""))
-      }
-    } else if (section === "nutrition") {
-      // Try to parse nutrition facts
-      const match = line.match(/([a-zA-Z\s]+)[\s:]*(\d+\.?\d*)\s*(g|mg|kcal|%)?/)
-      if (match) {
-        const nutrient = match[1].trim()
-        const value = parseFloat(match[2])
-        const unit = match[3] || "g"
-        nutrition[nutrient.toLowerCase()] = { value, unit }
-      }
-    } else if (section === "allergens") {
-      // Check for common allergens
-      for (const allergen of commonAllergens) {
-        if (lowerLine.includes(allergen) && !allergens.includes(allergen)) {
-          allergens.push(allergen)
-        }
+    const prompt = `Analyze this food product image and extract the following information. Return ONLY valid JSON with no additional text:
+{
+  "productName": "exact product name",
+  "ingredients": ["ingredient1", "ingredient2", ...],
+  "nutrition": { "calories": number, "protein": number, "carbs": number, "fat": number, "sugar": number, "fiber": number },
+  "allergens": ["allergen1", "allergen2", ...]
+}
+
+Extract from visible labels. If values aren't visible, set to 0 for numbers, empty array for lists, or "Unknown" for product name.
+IMPORTANT: Return only the JSON object, no markdown, no code blocks, no explanation.`
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: base64Data,
+        },
+      },
+      prompt,
+    ])
+
+    const responseText = result.response.text()
+
+    // Parse the JSON response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      return {
+        productName: parsed.productName || 'Unknown Product',
+        ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
+        nutrition: typeof parsed.nutrition === 'object' ? parsed.nutrition : {},
+        allergens: Array.isArray(parsed.allergens) ? parsed.allergens : [],
       }
     }
-  }
 
-  return {
-    productName: productName || "unknown",
-    ingredients: ingredients.filter(ing => ing.length > 0),
-    nutrition,
-    allergens
+    return {
+      productName: 'Unknown Product',
+      ingredients: [],
+      nutrition: {},
+      allergens: [],
+    }
+  } catch (error) {
+    console.error('Vision API error:', error)
+    return {
+      productName: 'Unknown Product',
+      ingredients: [],
+      nutrition: {},
+      allergens: [],
+    }
   }
 }

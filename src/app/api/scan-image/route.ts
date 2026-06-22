@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     }
 
     // Build RAG context (search Food.json and web for ingredient info)
-    const ragContext = await buildRagContext(extraction.ingredients || [])
+    const ragContext = await buildRagContext(extraction.ingredients || [], userConditions, userGoals)
 
     // Score product using enhanced scoring with RAG context (1-10 scale)
     const productScore = scoreProductForUserHealth(
@@ -137,7 +137,11 @@ export async function POST(req: Request) {
         databaseAvailable: scanId !== null,
         ragContext: {
           foodDbMatches: ragContext.foodDbMatches.map(f => ({ name: f.name, group: f.food_group })),
-          nutritionInfo: ragContext.combinedNutritionInfo
+          analysisOptions: ragContext.analysisOptions,
+          comparison: ragContext.combinedNutritionInfo.comparison,
+          finalRecommendation: ragContext.combinedNutritionInfo.finalRecommendation,
+          bestOption: ragContext.combinedNutritionInfo.bestOption,
+          combinedScore: ragContext.combinedNutritionInfo.combinedScore
         }
       }
     })
