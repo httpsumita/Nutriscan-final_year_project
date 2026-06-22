@@ -22,11 +22,14 @@ export async function GET(req: Request) {
       )
     }
 
-    // Get start and end of day
+    // Get start and end of day (use UTC to avoid timezone issues)
     const date = new Date(dateParam)
-    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    const dayEnd = new Date(dayStart)
-    dayEnd.setDate(dayEnd.getDate() + 1)
+    const year = date.getUTCFullYear()
+    const month = date.getUTCMonth()
+    const day = date.getUTCDate()
+    
+    const dayStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0))
+    const dayEnd = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0))
 
     const entries = await prisma.calorieLog.findMany({
       where: {

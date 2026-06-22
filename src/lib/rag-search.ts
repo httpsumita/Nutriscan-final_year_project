@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { LLM_CONFIG } from './types'
 
 export interface FoodDbEntry {
   id: number

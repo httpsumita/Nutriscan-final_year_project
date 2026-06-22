@@ -36,9 +36,9 @@ export default function TrackFoodPage() {
       try {
         if (session?.user?.id) {
           const today = new Date()
-          today.setHours(0, 0, 0, 0)
+          const dateStr = today.toISOString().split('T')[0]
 
-          const calorieRes = await fetch(`/api/calorie-logs?date=${today.toISOString()}`)
+          const calorieRes = await fetch(`/api/calorie-logs?date=${dateStr}`)
           const calorieData = await calorieRes.json()
 
           if (calorieData.ok) setCalorieEntries(calorieData.entries)

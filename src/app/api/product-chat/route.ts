@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       .join(', ') || 'Not available'
 
     const genAI = getGenAI()
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
 
     // Build a comprehensive context prompt with OCR data and user health profile
     const prompt = `You are a personalized nutritional health advisor. A user has scanned a food product using OCR and wants your expert advice.

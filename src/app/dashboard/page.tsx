@@ -31,11 +31,12 @@ export default function Dashboard() {
     try {
       if (session?.user?.id) {
         const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // Format date without timezone issues: YYYY-MM-DD
+        const dateStr = today.toISOString().split('T')[0]
 
         const [dailyResponse, totalsResponse] = await Promise.all([
           fetch(`/api/daily-summary?userId=${session.user.id}`),
-          fetch(`/api/daily-totals?date=${today.toISOString()}`)
+          fetch(`/api/daily-totals?date=${dateStr}`)
         ])
 
         const dailyData = await dailyResponse.json()

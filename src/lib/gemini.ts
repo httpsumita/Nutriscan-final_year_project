@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { LLM_CONFIG } from "./types"
 
 const getGenAI = () => {
   const apiKey = process.env.GEMINI_API_KEY
@@ -10,7 +11,7 @@ const getGenAI = () => {
 
 export async function analyzeProductImage(imageData: string | Buffer) {
   const genAI = getGenAI()
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+  const model = genAI.getGenerativeModel({ model: LLM_CONFIG.MODEL })
 
   const prompt = `Analyze this food product image and extract:
 1. Product name
@@ -80,7 +81,7 @@ export async function generatePersonalizedAnalysis(
   researchContext?: string
 ) {
   const genAI = getGenAI()
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
+  const model = genAI.getGenerativeModel({ model: LLM_CONFIG.MODEL })
 
   const prompt = `
 You are a personalized nutritional health AI. Analyze this product for a user with the given health profile.

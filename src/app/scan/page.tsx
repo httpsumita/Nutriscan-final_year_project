@@ -19,16 +19,12 @@ export default function ScanPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
-<<<<<<< HEAD
-  const [analyzing, setAnalyzing] = useState(false)
+  const [showChatHelp, setShowChatHelp] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [showCaloriePopup, setShowCaloriePopup] = useState(false)
   const [calorieInput, setCalorieInput] = useState('')
   const [categoryInput, setCategoryInput] = useState('Other')
   const [addingCalorie, setAddingCalorie] = useState(false)
-=======
-  const [showChatHelp, setShowChatHelp] = useState(false)
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -124,45 +120,28 @@ export default function ScanPage() {
       setCapturedImage('')
       
       if (data.ok) {
-<<<<<<< HEAD
-        setResult(data.product)
-        // Initialize chat with product analysis - simplified to final recommendation only
-        const finalScore = data.product.ragContext.combinedScore || data.product.score
-        const finalRec = data.product.ragContext.finalRecommendation || data.product.healthRecommendation
-        
-        const initialMessage = `I found a product: **${data.product.productName}**
-
-📊 **Final Score: ${finalScore}/10**
-
-${finalScore >= 7 ? '✅ RECOMMENDED' : finalScore >= 5 ? '⚠️ CAUTION' : '❌ NOT RECOMMENDED'} for your health profile.
-
-**Why:** ${finalRec}
-=======
         // Simulate processing delay for better UX
         setTimeout(() => {
           setResult(data.product)
           setAnalyzing(false)
           
           // Initialize chat with enhanced product analysis
-          const initialMessage = `🎉 **Analysis Complete!**
+          const scoreStatus = data.product.score >= 8 ? 'Excellent' : 
+                           data.product.score >= 6 ? 'Good' : 
+                           data.product.score >= 4 ? 'Caution' : 
+                           'Not Recommended'
+        
+        const initialMessage = `Product Analysis
 
-**${data.product.productName}**
+${data.product.productName}
+Compatibility Score: ${data.product.score}/10 - ${scoreStatus}
 
-🏆 **Compatibility Score: ${data.product.score}/10**
-
-${data.product.score >= 8 ? '✅ **Excellent Choice!**' : 
-  data.product.score >= 6 ? '🟡 **Good Option**' : 
-  data.product.score >= 4 ? '🟠 **Use with Caution**' : 
-  '🔴 **Not Recommended**'} for your health profile.
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
-
-**Health Insights:**
 ${data.product.healthRecommendation}
 
-${data.product.benefitFactors.length > 0 ? `**✅ Benefits:**\n${data.product.benefitFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
-${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.riskFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
+${data.product.riskFactors.length > 0 ? `Worst Ingredients:\n${data.product.riskFactors.slice(0, 3).map(f => `✗ ${f}`).join('\n')}\n` : ''}
+${data.product.benefitFactors.length > 0 ? `Key Benefits:\n${data.product.benefitFactors.slice(0, 2).map(f => `✓ ${f}`).join('\n')}\n` : ''}
 
-💬 Feel free to ask me anything about this product!`
+You can ask me any questions about this product.`
 
           setChatMessages([
             { role: 'assistant', content: initialMessage }
@@ -346,40 +325,6 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
 
         {/* Camera Capture - Recording State */}
         {scanning && (
-<<<<<<< HEAD
-          <div className="flex-1 flex flex-col gap-4">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full rounded-lg bg-black flex-1 object-cover"
-            />
-            <canvas
-              ref={canvasRef}
-              width={640}
-              height={480}
-              className="hidden"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={captureImage}
-                className="flex-1 px-4 py-3 bg-sage-600 text-white rounded-lg hover:bg-sage-700 font-medium transition"
-              >
-                Capture
-              </button>
-              <button
-                onClick={() => {
-                  if (videoRef.current?.srcObject) {
-                    const stream = videoRef.current.srcObject as MediaStream
-                    stream.getTracks().forEach(track => track.stop())
-                  }
-                  setScanning(false)
-                }}
-                className="flex-1 px-4 py-3 bg-neutral-200 text-neutral-600 rounded-lg hover:bg-neutral-300 font-medium transition"
-              >
-                Cancel
-              </button>
-=======
           <div className="flex-1 flex flex-col">
             <div className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden flex-1 flex flex-col">
               <div className="p-4 border-b border-neutral-200">
@@ -441,29 +386,10 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
                   Cancel
                 </button>
               </div>
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
             </div>
           </div>
         )}
 
-<<<<<<< HEAD
-        {/* Analyzing State - Image with Overlay */}
-        {analyzing && capturedImage && (
-          <div className="flex-1 relative">
-            <img
-              src={capturedImage}
-              alt="Captured product"
-              className="w-full h-full rounded-lg object-cover"
-            />
-            {/* Analyzing Overlay */}
-            <div className="absolute inset-0 bg-black/40 rounded-lg flex flex-col items-center justify-center z-10">
-              <div className="bg-white/95 rounded-xl px-8 py-6 text-center backdrop-blur">
-                <div className="mb-4">
-                  <div className="w-16 h-16 border-4 border-sage-200 border-t-sage-600 rounded-full animate-spin mx-auto" />
-                </div>
-                <h3 className="text-lg font-semibold text-neutral-700 mb-2">Analyzing Product</h3>
-                <p className="text-sm text-neutral-600">Extracting ingredients and nutrition info...</p>
-=======
         {/* Analyzing State */}
         {analyzing && (
           <div className="flex-1 flex items-center justify-center">
@@ -491,17 +417,12 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
               </div>
               <div className="w-full bg-neutral-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-sage-400 to-sage-500 h-2 rounded-full animate-pulse" style={{ width: '66%' }}></div>
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
               </div>
             </div>
           </div>
         )}
 
-<<<<<<< HEAD
-        {/* Chat Interface - Result Display */}
-=======
         {/* Enhanced Chat Interface - Result Display */}
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
         {result && (
           <div className="flex-1 flex flex-col bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-lg">
             {/* Chat Header with Product Summary */}
@@ -586,6 +507,20 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
                             : 'bg-white border-neutral-200 text-neutral-700'
                         } ${msg.role === 'assistant' ? 'animate-fadeIn' : ''}`}
                       >
+                        {/* Score Badge - Only show in first assistant message */}
+                        {msg.role === 'assistant' && idx === 0 && result && (
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-3 ${
+                            result.score >= 8 
+                              ? 'bg-green-100 text-green-700 border-green-300' 
+                              : result.score >= 4 
+                              ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                              : 'bg-red-100 text-red-700 border-red-300'
+                          }`}>
+                            <span>{result.score >= 8 ? '✓' : result.score >= 4 ? '⚠' : '✗'}</span>
+                            <span>{result.score}/10</span>
+                          </div>
+                        )}
+                        
                         <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
                           {msg.content}
                         </div>
@@ -698,16 +633,6 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
               </p>
             </div>
 
-<<<<<<< HEAD
-            {/* New Scan Button */}
-            <div className="border-t border-neutral-200 p-4">
-              <button
-                onClick={() => setShowCaloriePopup(true)}
-                className="w-full px-4 py-2 bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 font-medium transition text-sm"
-              >
-                Scan Another Product
-              </button>
-=======
             {/* Enhanced Action Area */}
             <div className="border-t border-neutral-200 p-4 bg-neutral-50">
               <div className="flex gap-3">
@@ -747,7 +672,6 @@ ${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.ri
                   <span>Private conversation</span>
                 </div>
               </div>
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
             </div>
           </div>
         )}

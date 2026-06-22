@@ -1,15 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-<<<<<<< HEAD
 import { FormEvent, useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Upload, X, Loader2, Leaf } from 'lucide-react'
-=======
-import { FormEvent, useState } from 'react'
-import { User, Heart, Target, CheckCircle, ArrowRight, Sparkles } from 'lucide-react'
-import { Upload, X, CheckCircle } from 'lucide-react'
->>>>>>> 10815b2e770ae885f1207444ac5298c25231944c
 
 const CONDITIONS = [
   { name: 'PCOS', description: 'Polycystic Ovary Syndrome' },

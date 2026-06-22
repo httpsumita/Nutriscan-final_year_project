@@ -32,9 +32,9 @@ export default function TrackWaterPage() {
       try {
         if (session?.user?.id) {
           const today = new Date()
-          today.setHours(0, 0, 0, 0)
+          const dateStr = today.toISOString().split('T')[0]
 
-          const waterRes = await fetch(`/api/water-logs?date=${today.toISOString()}`)
+          const waterRes = await fetch(`/api/water-logs?date=${dateStr}`)
           const waterData = await waterRes.json()
 
           if (waterData.ok) setWaterEntries(waterData.entries)
