@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
+import { User, Heart, Target, CheckCircle, ArrowRight, Sparkles } from 'lucide-react'
 import { Upload, X, CheckCircle } from 'lucide-react'
 
 const CONDITIONS = [
