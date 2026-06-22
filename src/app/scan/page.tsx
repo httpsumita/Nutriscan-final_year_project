@@ -20,11 +20,6 @@ export default function ScanPage() {
   const [messageInput, setMessageInput] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [showChatHelp, setShowChatHelp] = useState(false)
-  const [capturedImage, setCapturedImage] = useState<string>('')
-  const [showCaloriePopup, setShowCaloriePopup] = useState(false)
-  const [calorieInput, setCalorieInput] = useState('')
-  const [categoryInput, setCategoryInput] = useState('Other')
-  const [addingCalorie, setAddingCalorie] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -37,54 +32,16 @@ export default function ScanPage() {
   const startCamera = async () => {
     try {
       setError('')
-      
-      // Check if running on client side
-      if (typeof window === 'undefined') {
-        setError('Camera access is only available in the browser.')
-        setScanning(false)
-        return
-      }
-
-      // Check if browser supports getUserMedia
-      if (!navigator?.mediaDevices?.getUserMedia) {
-        setError('Camera access is not supported in your browser. Please use a modern browser like Chrome, Firefox, or Safari.')
-        setScanning(false)
-        return
-      }
-
-      // Check if running on localhost, HTTPS, or 127.0.0.1
-      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      if (!isSecure) {
-        setError('Camera access requires HTTPS or localhost. Please access over a secure connection.')
-        setScanning(false)
-        return
-      }
-
       setScanning(true)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+        video: { facingMode: 'environment' }
       })
-      
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
     } catch (err) {
+      setError('Unable to access camera: ' + String(err))
       setScanning(false)
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      
-      if (errorMessage.includes('NotAllowedError')) {
-        setError('Camera permission denied. Please allow camera access and try again.')
-      } else if (errorMessage.includes('NotFoundError')) {
-        setError('No camera device found. Please check your device.')
-      } else if (errorMessage.includes('NotReadableError')) {
-        setError('Camera is in use by another application. Please close other apps and try again.')
-      } else {
-        setError('Unable to access camera: ' + errorMessage)
-      }
     }
   }
 
@@ -98,13 +55,11 @@ export default function ScanPage() {
     
     context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height)
     const imageData = canvasRef.current.toDataURL('image/jpeg')
-    setCapturedImage(imageData)
 
     // Stop camera
     const stream = videoRef.current.srcObject as MediaStream
     stream.getTracks().forEach(track => track.stop())
     setScanning(false)
-    setAnalyzing(true)
 
     // Send to API for analysis
     try {
@@ -116,9 +71,6 @@ export default function ScanPage() {
       })
 
       const data = await response.json()
-      setAnalyzing(false)
-      setCapturedImage('')
-      
       if (data.ok) {
         // Simulate processing delay for better UX
         setTimeout(() => {
@@ -126,22 +78,24 @@ export default function ScanPage() {
           setAnalyzing(false)
           
           // Initialize chat with enhanced product analysis
-          const scoreStatus = data.product.score >= 8 ? 'Excellent' : 
-                           data.product.score >= 6 ? 'Good' : 
-                           data.product.score >= 4 ? 'Caution' : 
-                           'Not Recommended'
-        
-        const initialMessage = `Product Analysis
+          const initialMessage = `🎉 **Analysis Complete!**
 
-${data.product.productName}
-Compatibility Score: ${data.product.score}/10 - ${scoreStatus}
+**${data.product.productName}**
 
+🏆 **Compatibility Score: ${data.product.score}/10**
+
+${data.product.score >= 8 ? '✅ **Excellent Choice!**' : 
+  data.product.score >= 6 ? '🟡 **Good Option**' : 
+  data.product.score >= 4 ? '🟠 **Use with Caution**' : 
+  '🔴 **Not Recommended**'} for your health profile.
+
+**Health Insights:**
 ${data.product.healthRecommendation}
 
-${data.product.riskFactors.length > 0 ? `Worst Ingredients:\n${data.product.riskFactors.slice(0, 3).map(f => `✗ ${f}`).join('\n')}\n` : ''}
-${data.product.benefitFactors.length > 0 ? `Key Benefits:\n${data.product.benefitFactors.slice(0, 2).map(f => `✓ ${f}`).join('\n')}\n` : ''}
+${data.product.benefitFactors.length > 0 ? `**✅ Benefits:**\n${data.product.benefitFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
+${data.product.riskFactors.length > 0 ? `**⚠️ Consider:**\n${data.product.riskFactors.slice(0, 3).map(f => `• ${f}`).join('\n')}\n` : ''}
 
-You can ask me any questions about this product.`
+💬 Feel free to ask me anything about this product!`
 
           setChatMessages([
             { role: 'assistant', content: initialMessage }
@@ -152,8 +106,6 @@ You can ask me any questions about this product.`
         setAnalyzing(false)
       }
     } catch (err) {
-      setAnalyzing(false)
-      setCapturedImage('')
       setError('Error analyzing image: ' + String(err))
       setAnalyzing(false)
     }
@@ -176,9 +128,9 @@ You can ask me any questions about this product.`
           productName: result.productName,
           ingredients: result.ingredients,
           score: result.score,
-          scoreRange: result.scoreRange,
           question: userMessage,
-          scanId: result.scanId
+          conditions: session?.user?.conditions || [],
+          goals: session?.user?.goals || []
         })
       })
 
@@ -193,46 +145,6 @@ You can ask me any questions about this product.`
     } finally {
       setSendingMessage(false)
     }
-  }
-
-  const handleAddCalorie = async () => {
-    if (!calorieInput || !result) return
-
-    setAddingCalorie(true)
-    try {
-      const response = await fetch('/api/log-calorie', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          foodName: result.productName,
-          category: categoryInput,
-          calories: parseInt(calorieInput)
-        })
-      })
-
-      const data = await response.json()
-      if (data.ok) {
-        setShowCaloriePopup(false)
-        setCalorieInput('')
-        setCategoryInput('Other')
-        setResult(null)
-        setChatMessages([])
-        // Trigger dashboard refresh
-        window.dispatchEvent(new Event('calorieAdded'))
-      }
-    } catch (err) {
-      console.error('Failed to add calorie:', err)
-    } finally {
-      setAddingCalorie(false)
-    }
-  }
-
-  const handleSkipCalorie = () => {
-    setShowCaloriePopup(false)
-    setCalorieInput('')
-    setCategoryInput('Other')
-    setResult(null)
-    setChatMessages([])
   }
 
   return (
@@ -501,32 +413,57 @@ You can ask me any questions about this product.`
                       
                       {/* Message Content */}
                       <div
-                        className={`px-6 py-4 rounded-2xl shadow-sm border ${
+                        className={`px-6 py-4 rounded-2xl shadow-md border ${
                           msg.role === 'user'
                             ? 'bg-gradient-to-br from-sage-600 to-sage-700 text-white border-sage-700'
                             : 'bg-white border-neutral-200 text-neutral-700'
                         } ${msg.role === 'assistant' ? 'animate-fadeIn' : ''}`}
                       >
-                        {/* Score Badge - Only show in first assistant message */}
-                        {msg.role === 'assistant' && idx === 0 && result && (
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border mb-3 ${
-                            result.score >= 8 
-                              ? 'bg-green-100 text-green-700 border-green-300' 
-                              : result.score >= 4 
-                              ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                              : 'bg-red-100 text-red-700 border-red-300'
-                          }`}>
-                            <span>{result.score >= 8 ? '✓' : result.score >= 4 ? '⚠' : '✗'}</span>
-                            <span>{result.score}/10</span>
-                          </div>
-                        )}
-                        
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                          {msg.content}
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {msg.content.split('\n').map((line, i) => {
+                            // Format bold text (**text**)
+                            if (line.startsWith('**') && line.endsWith('**')) {
+                              return (
+                                <p key={i} className={`font-bold text-base mb-2 ${
+                                  msg.role === 'user' ? 'text-white' : 'text-sage-700'
+                                }`}>
+                                  {line.replace(/\*\*/g, '')}
+                                </p>
+                              )
+                            }
+                            
+                            // Format bullet points (•)
+                            if (line.startsWith('•')) {
+                              return (
+                                <p key={i} className="ml-4 mb-1.5 flex items-start gap-2">
+                                  <span className={msg.role === 'user' ? 'text-sage-200' : 'text-sage-500'}>•</span>
+                                  <span>{line.substring(1).trim()}</span>
+                                </p>
+                              )
+                            }
+                            
+                            // Format headings with emojis
+                            if (line.includes('🎉') || line.includes('✅') || line.includes('⚠️') || line.includes('💬')) {
+                              return (
+                                <p key={i} className={`font-semibold mb-2 ${
+                                  msg.role === 'user' ? 'text-white' : 'text-neutral-800'
+                                }`}>
+                                  {line}
+                                </p>
+                              )
+                            }
+                            
+                            // Regular text
+                            return line ? (
+                              <p key={i} className="mb-2">{line}</p>
+                            ) : (
+                              <br key={i} />
+                            )
+                          })}
                         </div>
                         
                         {/* Timestamp */}
-                        <div className={`text-xs mt-2 ${
+                        <div className={`text-xs mt-3 ${
                           msg.role === 'user' ? 'text-sage-200' : 'text-neutral-400'
                         }`}>
                           {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -743,69 +680,6 @@ You can ask me any questions about this product.`
           </div>
         )}
       </div>
-
-      {/* Calorie Popup Modal */}
-      {showCaloriePopup && result && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-xl">
-            <h3 className="text-xl font-semibold text-neutral-700 mb-2">Add to Calorie Intake?</h3>
-            <p className="text-neutral-600 text-sm mb-6">
-              Would you like to add <span className="font-medium">{result?.productName}</span> to your daily calorie tracker?
-            </p>
-
-            {/* Calorie Input */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-600 mb-2">
-                Calories (estimated)
-              </label>
-              <input
-                type="number"
-                value={calorieInput}
-                onChange={(e) => setCalorieInput(e.target.value)}
-                placeholder="Enter calorie count"
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent text-neutral-600 placeholder-neutral-400"
-              />
-            </div>
-
-            {/* Category Select */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-neutral-600 mb-2">
-                Category
-              </label>
-              <select
-                value={categoryInput}
-                onChange={(e) => setCategoryInput(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent text-neutral-600 bg-white"
-              >
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-                <option value="Snack">Snack</option>
-                <option value="Beverage">Beverage</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleSkipCalorie}
-                disabled={addingCalorie}
-                className="flex-1 px-4 py-2 bg-neutral-100 text-neutral-600 rounded-lg hover:bg-neutral-200 font-medium transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                No
-              </button>
-              <button
-                onClick={handleAddCalorie}
-                disabled={addingCalorie || !calorieInput}
-                className="flex-1 px-4 py-2 bg-sage-600 text-white rounded-lg hover:bg-sage-700 font-medium transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {addingCalorie ? 'Adding...' : 'Yes, Add'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

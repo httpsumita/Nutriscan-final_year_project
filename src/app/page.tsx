@@ -319,17 +319,115 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-sage-200 py-20">
-        <div className="max-w-3xl mx-auto px-6 md:px-12 text-center">
-          <h2 className="text-4xl font-medium text-neutral-600 mb-4">Ready to make smarter choices?</h2>
-          <p className="text-neutral-600 text-lg mb-8 opacity-90">Join thousands who are transforming their nutrition based on their hormonal health.</p>
-          <Link
-            href="/auth/signup"
-            className="inline-block px-8 py-4 bg-sage-700 text-white rounded-lg font-medium hover:bg-sage-800 transition"
-          >
-            Get Started Free
-          </Link>
+      {/* Enhanced How It Works Section */}
+      <section id="how" className="relative bg-gradient-to-b from-neutral-50 to-white py-32 overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-0 w-72 h-72 bg-gradient-to-r from-sage-200 to-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-gradient-to-r from-emerald-200 to-sage-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 md:px-12">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 bg-emerald-100 rounded-full px-6 py-3 text-emerald-700 font-medium mb-6">
+              <Zap className="w-5 h-5" />
+              Simple 4-Step Process
+            </div>
+            <h2 className="text-5xl md:text-6xl font-bold text-neutral-800 mb-6">
+              From scan to <span className="bg-gradient-to-r from-emerald-600 to-sage-600 bg-clip-text text-transparent">smart choice</span>
+            </h2>
+            <p className="text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
+              Our AI analyzes thousands of data points in seconds to give you personalized nutrition insights that actually matter for your health.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            {/* Connection Lines */}
+            <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-sage-200 via-sage-400 to-sage-200 transform -translate-y-1/2 z-0"></div>
+            
+            {[
+              { 
+                step: '01', 
+                title: 'Create Profile', 
+                desc: 'Share your health conditions, goals, and dietary preferences in 2 minutes',
+                icon: Users,
+                color: 'from-purple-500 to-indigo-500',
+                delay: '0s'
+              },
+              { 
+                step: '02', 
+                title: 'Scan Product', 
+                desc: 'Point your camera at any food product - from snacks to supplements',
+                icon: Target,
+                color: 'from-blue-500 to-cyan-500',
+                delay: '0.2s'
+              },
+              { 
+                step: '03', 
+                title: 'AI Analysis', 
+                desc: 'Our AI extracts ingredients, analyzes nutrition, and cross-references your profile',
+                icon: Brain,
+                color: 'from-emerald-500 to-teal-500',
+                delay: '0.4s'
+              },
+              { 
+                step: '04', 
+                title: 'Get Score', 
+                desc: 'Receive your personalized compatibility score with detailed health insights',
+                icon: Trophy,
+                color: 'from-amber-500 to-orange-500',
+                delay: '0.6s'
+              }
+            ].map((item, i) => {
+              const IconComponent = item.icon
+              return (
+                <div 
+                  key={i} 
+                  className="relative group animate-fadeIn"
+                  style={{animationDelay: item.delay}}
+                >
+                  <div className="relative bg-white border-2 border-neutral-100 rounded-2xl p-8 text-center hover:border-sage-300 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl">
+                    {/* Step Number Badge */}
+                    <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br ${item.color} rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg z-10`}>
+                      {item.step}
+                    </div>
+                    
+                    {/* Icon */}
+                    <div className={`w-20 h-20 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-6 mt-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg group-hover:shadow-xl`}>
+                      <IconComponent className="w-10 h-10 text-white" strokeWidth={1.5} />
+                    </div>
+                    
+                    {/* Content */}
+                    <h3 className="text-2xl font-bold text-neutral-800 mb-4 group-hover:text-sage-700 transition-colors duration-300">{item.title}</h3>
+                    <p className="text-neutral-600 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-300">{item.desc}</p>
+                    
+                    {/* Hover Effect Background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-sage-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10"></div>
+                  </div>
+                  
+                  {/* Connection Arrow (except for last item) */}
+                  {i < 3 && (
+                    <div className="hidden lg:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-20">
+                      <div className="w-8 h-8 bg-white border-2 border-sage-300 rounded-full flex items-center justify-center shadow-md">
+                        <ArrowRight className="w-4 h-4 text-sage-600" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Get Started CTA */}
+          <div className="text-center mt-16">
+            <Link
+              href="/auth/signin"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sage-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-sage-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              Get Started Free
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
 
